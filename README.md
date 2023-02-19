@@ -33,7 +33,8 @@ docker container inspect http-simple-api
 docker container logs -f --tail 100 http-simple-api
 
 curl --url 'http://localhost:9000/api/v1/message'
-curl --url 'http://localhost:9000/api/v1/healthcheck'
+curl --url 'http://localhost:9000/api/v1/health/live'
+curl --url 'http://localhost:9000/api/v1/health/ready'
 
 docker container rm -f http-simple-api
 ```
@@ -44,17 +45,18 @@ docker container rm -f http-simple-api
 kubectl apply -f deployment.yaml
 
 INGRESS_IP=$(kubectl get service -n ingress-nginx -l app.kubernetes.io/instance=ingress-nginx --no-headers | tr -s ' ' ' ' | cut -d ' ' -f 3)
-echo "${INGRESS_IP} api.blackdevs.local" >> /etc/hosts
+echo "${INGRESS_IP} api.golang.local" >> /etc/hosts
 
-curl --url 'http://api.blackdevs.local/api/v1/message'
-curl --url 'http://api.blackdevs.local/api/v1/healthcheck'
+curl --url 'http://api.golang.local/api/v1/message'
+curl --url 'http://api.golang.local/api/v1/health/live'
+curl --url 'http://api.golang.local/api/v1/health/ready'
 
 kubectl get pod,svc,ingress -n default
 
 kubectl logs -f -l component=api -n default --tail 100
 
-echo "127.0.0.1 api.blackdevs.local" >> /etc/hosts
-curl -H 'Host: api.blackdevs.local' 'http://127.0.0.1/api/v1'
+echo "127.0.0.1 api.golang.local" >> /etc/hosts
+curl -H 'Host: api.golang.local' 'http://127.0.0.1/api/v1'
 
 kubectl delete -f deployment.yaml
 ```

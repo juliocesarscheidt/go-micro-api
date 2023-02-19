@@ -59,7 +59,8 @@ func getFromEnvOrDefaultAsString(envParam, defaultValue string) string {
 
 func serve(address string, message string) {
 	http.HandleFunc("/api/v1/message", returnHTTPResponse(http.StatusOK, message))
-	http.HandleFunc("/api/v1/healthcheck", returnHTTPResponse(http.StatusOK, "Healthy"))
+	http.HandleFunc("/api/v1/health/live", returnHTTPResponse(http.StatusOK, "Alive"))
+	http.HandleFunc("/api/v1/health/ready", returnHTTPResponse(http.StatusOK, "Ready"))
 	http.ListenAndServe(address, nil)
 }
 
