@@ -6,7 +6,8 @@
 docker image build --tag juliocesarmidia/http-simple-api:v1.0.0 .
 
 docker image ls \
-  --format "table {{.ID}}\t{{.Repository}}\t{{.Tag}}\t{{.Size}}" --filter="reference=juliocesarmidia/http-simple-api:v1.0.0"
+  --format "table {{.ID}}\t{{.Repository}}\t{{.Tag}}\t{{.Size}}" \
+  --filter="reference=juliocesarmidia/http-simple-api:v1.0.0"
 
 docker image push juliocesarmidia/http-simple-api:v1.0.0
 
@@ -30,7 +31,7 @@ docker container top http-simple-api
 
 docker container inspect http-simple-api
 
-docker container logs -f --tail 100 http-simple-api
+docker container logs -f --tail 1000 http-simple-api
 
 curl --url 'http://localhost:9000/api/v1/message'
 curl --url 'http://localhost:9000/api/v1/health/live'
@@ -44,7 +45,9 @@ docker container rm -f http-simple-api
 ```bash
 kubectl apply -f k8s/deployment.yaml
 
-INGRESS_IP=$(kubectl get service -n ingress-nginx -l app.kubernetes.io/instance=ingress-nginx --no-headers | tr -s ' ' ' ' | cut -d' ' -f3)
+INGRESS_IP=$(kubectl get service -n ingress-nginx \
+  -l app.kubernetes.io/instance=ingress-nginx --no-headers \
+  | tr -s ' ' ' ' | cut -d' ' -f3)
 echo "${INGRESS_IP} api.golang.local" >> /etc/hosts
 
 curl --url 'http://api.golang.local/api/v1/message'
@@ -53,7 +56,9 @@ curl --url 'http://api.golang.local/api/v1/health/ready'
 
 kubectl get pod,svc,rs,ingress -n default
 
-kubectl logs -f -l app.kubernetes.io/name=http-simple-api -n default --tail 100
+kubectl logs -f \
+  -l app.kubernetes.io/name=http-simple-api \
+  -n default --tail 1000 --timestamps
 
 kubectl delete -f k8s/deployment.yaml
 ```
