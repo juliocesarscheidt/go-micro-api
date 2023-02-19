@@ -2,7 +2,7 @@
 {{/*
 Expand the name of the chart.
 */}}
-{{- define "http-simple-api.name" -}}
+{{- define "application.name" -}}
 {{- default .Chart.Name .Values.nameOverride | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
@@ -11,7 +11,7 @@ Create a default fully qualified app name.
 We truncate at 63 chars because some Kubernetes name fields are limited to this (by the DNS naming spec).
 If release name contains chart name it will be used as a full name.
 */}}
-{{- define "http-simple-api.fullname" -}}
+{{- define "application.fullname" -}}
 {{- if .Values.fullnameOverride }}
 {{- .Values.fullnameOverride | trunc 63 | trimSuffix "-" }}
 {{- else }}
@@ -27,16 +27,16 @@ If release name contains chart name it will be used as a full name.
 {{/*
 Create chart name and version as used by the chart label.
 */}}
-{{- define "http-simple-api.chart" -}}
+{{- define "application.chart" -}}
 {{- printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
 {{/*
 Common labels
 */}}
-{{- define "http-simple-api.labels" -}}
-helm.sh/chart: {{ include "http-simple-api.chart" . }}
-{{ include "http-simple-api.selectorLabels" . }}
+{{- define "application.labels" -}}
+helm.sh/chart: {{ include "application.chart" . }}
+{{ include "application.selectorLabels" . }}
 {{- if .Chart.AppVersion }}
 app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
 {{- end }}
@@ -46,17 +46,17 @@ app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{/*
 Selector labels
 */}}
-{{- define "http-simple-api.selectorLabels" -}}
-app.kubernetes.io/name: {{ include "http-simple-api.name" . }}
+{{- define "application.selectorLabels" -}}
+app.kubernetes.io/name: {{ include "application.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
 
 {{/*
 Create the name of the service account to use
 */}}
-{{- define "http-simple-api.serviceAccountName" -}}
+{{- define "application.serviceAccountName" -}}
 {{- if .Values.serviceAccount.create }}
-{{- default (include "http-simple-api.fullname" .) .Values.serviceAccount.name }}
+{{- default (include "application.fullname" .) .Values.serviceAccount.name }}
 {{- else }}
 {{- default "default" .Values.serviceAccount.name }}
 {{- end }}

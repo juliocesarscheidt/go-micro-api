@@ -7,6 +7,8 @@ DOCKER_BUILDKIT=1
 BUILDKIT_PROGRESS=plain
 # application variables
 MESSAGE?="Hello World"
+# kubernetes variables
+RELEASE_NAME?="http-simple-api"
 
 all: help
 
@@ -48,3 +50,13 @@ docker-build:
 .PHONY: docker-push
 docker-push:
 	docker image push $(DOCKER_REPO):$(DOCKER_TAG)
+
+## helm-install: install the helm release
+.PHONY: helm-install
+helm-install:
+	helm upgrade -i "$(RELEASE_NAME)" ./helm --debug --wait --timeout 15m
+
+## helm-uninstall: uninstall the helm release
+.PHONY: helm-uninstall
+helm-uninstall:
+	helm delete "$(RELEASE_NAME)" --debug

@@ -1,6 +1,13 @@
 # Simple Golang API
 
-## Docker
+## Using Makefile
+
+```bash
+make
+```
+![image](./images/make.PNG)
+
+## Running with Docker
 
 ```bash
 docker image build --tag juliocesarmidia/http-simple-api:v1.0.0 .

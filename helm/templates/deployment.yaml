@@ -1,16 +1,16 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "http-simple-api.fullname" . }}
+  name: {{ include "application.fullname" . }}
   labels:
-    {{- include "http-simple-api.labels" . | nindent 4 }}
+    {{- include "application.labels" . | nindent 4 }}
 spec:
 {{- if not .Values.autoscaling.enabled }}
   replicas: {{ .Values.replicaCount }}
 {{- end }}
   selector:
     matchLabels:
-      {{- include "http-simple-api.selectorLabels" . | nindent 6 }}
+      {{- include "application.selectorLabels" . | nindent 6 }}
   template:
     metadata:
     {{- with .Values.podAnnotations }}
@@ -18,13 +18,13 @@ spec:
         {{- toYaml . | nindent 8 }}
     {{- end }}
       labels:
-        {{- include "http-simple-api.selectorLabels" . | nindent 8 }}
+        {{- include "application.selectorLabels" . | nindent 8 }}
     spec:
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      serviceAccountName: {{ include "http-simple-api.serviceAccountName" . }}
+      serviceAccountName: {{ include "application.serviceAccountName" . }}
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
       containers:
@@ -39,16 +39,26 @@ spec:
               protocol: TCP
           livenessProbe:
             httpGet:
-              path: /api/v1/health/live
+              path: {{ .Values.livenessUrl }}
               port: http
             initialDelaySeconds: 10
             timeoutSeconds: 30
           readinessProbe:
             httpGet:
-              path: /api/v1/health/ready
+              path: {{ .Values.readinessUrl }}
               port: http
             initialDelaySeconds: 10
             timeoutSeconds: 30
+          # env:
+          # - name: MESSAGE
+          #   valueFrom:
+          #     fieldRef:
+          #       fieldPath: status.podIP
+          envFrom:
+          - configMapRef:
+              name: {{ include "application.fullname" . }}-config
+          - secretRef:
+              name: {{ include "application.fullname" . }}-secret
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
       {{- with .Values.nodeSelector }}

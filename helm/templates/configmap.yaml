@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+data:
+{{- with .Values.configmaps }}
+    {{- toYaml . | nindent 2 }}
+{{- end }}
+metadata:
+  name: {{ include "application.fullname" . }}-config
+  labels:
+    {{- include "application.selectorLabels" . | nindent 6 }}
