@@ -20,18 +20,18 @@ spec:
           image: juliocesarmidia/http-simple-api:v1.0.0
           imagePullPolicy: IfNotPresent
           ports:
-            - name: http-port
+            - name: http
               containerPort: 9000
           livenessProbe:
             httpGet:
-              path: /api/v1/healthcheck
-              port: http-port
+              path: /api/v1/health/live
+              port: http
             initialDelaySeconds: 10
             timeoutSeconds: 30
           readinessProbe:
             httpGet:
-              path: /api/v1/healthcheck
-              port: http-port
+              path: /api/v1/health/ready
+              port: http
             initialDelaySeconds: 10
             timeoutSeconds: 30
           env:
@@ -65,7 +65,7 @@ spec:
     component: http-simple-api
   ports:
   - port: 80
-    targetPort: http-port
+    targetPort: http
     protocol: TCP
 
 ---
@@ -86,17 +86,17 @@ spec:
 #   - host: api.default.local
 #     http:
 #       paths:
-#       - path: /api/v1/
+#       - path: /api/v1/message
 #         # pathType: ImplementationSpecific
 #         # pathType: Prefix
 #         pathType: Exact
 #         backend:
-#           serviceName: api
+#           serviceName: http-simple-api
 #           servicePort: 80
-#       - path: /api/v1/healthcheck
+#       - path: /api/v1/health/
 #         # pathType: ImplementationSpecific
 #         # pathType: Prefix
 #         pathType: Exact
 #         backend:
-#           serviceName: api
+#           serviceName: http-simple-api
 #           servicePort: 80

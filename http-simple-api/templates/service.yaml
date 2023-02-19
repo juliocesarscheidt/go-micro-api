@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "http-simple-api.fullname" . }}
+  labels:
+    {{- include "http-simple-api.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - port: {{ .Values.service.targetPort }}
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "http-simple-api.selectorLabels" . | nindent 4 }}
