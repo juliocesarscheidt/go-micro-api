@@ -42,21 +42,18 @@ docker container rm -f http-simple-api
 ## Running with Kubernetes
 
 ```bash
-kubectl apply -f deployment.yaml
+kubectl apply -f k8s/deployment.yaml
 
-INGRESS_IP=$(kubectl get service -n ingress-nginx -l app.kubernetes.io/instance=ingress-nginx --no-headers | tr -s ' ' ' ' | cut -d ' ' -f 3)
+INGRESS_IP=$(kubectl get service -n ingress-nginx -l app.kubernetes.io/instance=ingress-nginx --no-headers | tr -s ' ' ' ' | cut -d' ' -f3)
 echo "${INGRESS_IP} api.golang.local" >> /etc/hosts
 
 curl --url 'http://api.golang.local/api/v1/message'
 curl --url 'http://api.golang.local/api/v1/health/live'
 curl --url 'http://api.golang.local/api/v1/health/ready'
 
-kubectl get pod,svc,ingress -n default
+kubectl get pod,svc,rs,ingress -n default
 
-kubectl logs -f -l component=api -n default --tail 100
+kubectl logs -f -l app.kubernetes.io/name=http-simple-api -n default --tail 100
 
-echo "127.0.0.1 api.golang.local" >> /etc/hosts
-curl -H 'Host: api.golang.local' 'http://127.0.0.1/api/v1'
-
-kubectl delete -f deployment.yaml
+kubectl delete -f k8s/deployment.yaml
 ```

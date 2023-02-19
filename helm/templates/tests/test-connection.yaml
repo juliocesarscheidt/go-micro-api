@@ -11,5 +11,5 @@ spec:
     - name: wget
       image: busybox
       command: ['wget']
-      args: ['{{ include "http-simple-api.fullname" . }}:{{ .Values.service.targetPort }}']
+      args: ['{{ include "http-simple-api.fullname" . }}:{{ .Values.service.targetPort }}/api/v1/health/live']
   restartPolicy: Never

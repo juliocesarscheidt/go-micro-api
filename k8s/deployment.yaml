@@ -4,16 +4,21 @@ metadata:
   name: http-simple-api
   namespace: default
   labels:
-    component: http-simple-api
+    app.kubernetes.io/name: http-simple-api
 spec:
-  replicas: 1
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1 # maximum of 1 replica to be created for each time
+      maxUnavailable: 1 # maximum of 1 replica unavailable
   selector:
     matchLabels:
-      component: http-simple-api
+      app.kubernetes.io/name: http-simple-api
   template:
     metadata:
       labels:
-        component: http-simple-api
+        app.kubernetes.io/name: http-simple-api
     spec:
       containers:
         - name: http-simple-api
@@ -27,20 +32,18 @@ spec:
               path: /api/v1/health/live
               port: http
             initialDelaySeconds: 10
-            timeoutSeconds: 30
+            timeoutSeconds: 10
           readinessProbe:
             httpGet:
               path: /api/v1/health/ready
               port: http
             initialDelaySeconds: 10
-            timeoutSeconds: 30
+            timeoutSeconds: 10
           env:
             - name: MESSAGE
               valueFrom:
                 fieldRef:
                   fieldPath: status.podIP
-            - name: API_PORT
-              value: "9000"
           resources:
             limits:
               memory: "64Mi"
@@ -58,11 +61,11 @@ metadata:
   name: http-simple-api
   namespace: default
   labels:
-    component: http-simple-api
+    app.kubernetes.io/name: http-simple-api
 spec:
   type: ClusterIP
   selector:
-    component: http-simple-api
+    app.kubernetes.io/name: http-simple-api
   ports:
   - port: 80
     targetPort: http
@@ -70,33 +73,27 @@ spec:
 
 ---
 
-# apiVersion: extensions/v1beta1
-# kind: Ingress
-# metadata:
-#   name: api
-#   namespace: default
-#   annotations:
-#     kubernetes.io/ingress.class: nginx
-#     # nginx.ingress.kubernetes.io/rewrite-target: "/api/v1/"
-#     nginx.ingress.kubernetes.io/ssl-redirect: "false"
-#     nginx.ingress.kubernetes.io/force-ssl-redirect: "false"
-
-# spec:
-#   rules:
-#   - host: api.default.local
-#     http:
-#       paths:
-#       - path: /api/v1/message
-#         # pathType: ImplementationSpecific
-#         # pathType: Prefix
-#         pathType: Exact
-#         backend:
-#           serviceName: http-simple-api
-#           servicePort: 80
-#       - path: /api/v1/health/
-#         # pathType: ImplementationSpecific
-#         # pathType: Prefix
-#         pathType: Exact
-#         backend:
-#           serviceName: http-simple-api
-#           servicePort: 80
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: http-simple-api
+  namespace: default
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "false"
+spec:
+  rules:
+  - host: api.golang.local
+    http:
+      paths:
+      - path: /api/v1/message
+        pathType: Exact
+        backend:
+          serviceName: http-simple-api
+          servicePort: 80
+      - path: /api/v1/health/
+        pathType: Prefix
+        backend:
+          serviceName: http-simple-api
+          servicePort: 80

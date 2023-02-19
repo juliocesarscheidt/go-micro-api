@@ -16,7 +16,7 @@ fullnameOverride: ""
 
 serviceAccount:
   # Specifies whether a service account should be created
-  create: false
+  create: true
   # Annotations to add to the service account
   annotations: {}
   # The name of the service account to use.
@@ -33,7 +33,7 @@ securityContext:
     drop:
     - ALL
   readOnlyRootFilesystem: true
-  runAsNonRoot: true
+  # runAsNonRoot: true
   # runAsUser: 1000
 
 service:
@@ -42,17 +42,22 @@ service:
   targetPort: 80
 
 ingress:
-  enabled: false
-  annotations: {}
-    # kubernetes.io/ingress.class: nginx
-    # kubernetes.io/tls-acme: "true"
+  enabled: true
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "false"
   hosts:
-    - host: chart-example.local
-      paths: []
+    - host: api.golang.local
+      paths:
+      - path: /api/v1/message
+        pathType: Exact
+      - path: /api/v1/health/
+        pathType: Prefix
   tls: []
   #  - secretName: chart-example-tls
   #    hosts:
-  #      - chart-example.local
+  #      - api.golang.local
 
 resources:
   # We usually recommend not to specify default resources and to leave this as a conscious
