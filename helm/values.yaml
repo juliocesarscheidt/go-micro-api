@@ -1,6 +1,6 @@
 replicaCount: 1
 image:
-  repository: juliocesarmidia/http-simple-api
+  repository: juliocesarmidia/go-micro-api
   pullPolicy: IfNotPresent
   tag: "v1.0.0"
 imagePullSecrets: []
@@ -38,7 +38,7 @@ ingress:
       - path: /api/v1/health/
         pathType: Prefix
   tls: []
-  #  - secretName: http-simple-api-tls
+  #  - secretName: go-micro-api-tls
   #    hosts:
   #      - api.golang.local
 resources:

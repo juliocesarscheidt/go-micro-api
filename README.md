@@ -12,18 +12,18 @@ make
 ## Running with Docker
 
 ```bash
-docker image build --tag juliocesarmidia/http-simple-api:v1.0.0 .
+docker image build --tag juliocesarmidia/go-micro-api:v1.0.0 .
 
 docker image ls \
   --format "table {{.ID}}\t{{.Repository}}\t{{.Tag}}\t{{.Size}}" \
-  --filter="reference=juliocesarmidia/http-simple-api:v1.0.0"
+  --filter="reference=juliocesarmidia/go-micro-api:v1.0.0"
 
-docker image push juliocesarmidia/http-simple-api:v1.0.0
+docker image push juliocesarmidia/go-micro-api:v1.0.0
 
-docker image history juliocesarmidia/http-simple-api:v1.0.0 --no-trunc
+docker image history juliocesarmidia/go-micro-api:v1.0.0 --no-trunc
 
 docker container run -d \
-  --name http-simple-api \
+  --name go-micro-api \
   --publish 9000:9000 \
   --cap-drop NET_BIND_SERVICE \
   --sysctl net.ipv4.ip_unprivileged_port_start=1024 \
@@ -31,22 +31,22 @@ docker container run -d \
   --cpus='0.1' \
   --env MESSAGE="$(uptime -s)" \
   --restart on-failure \
-  juliocesarmidia/http-simple-api:v1.0.0
+  juliocesarmidia/go-micro-api:v1.0.0
 
-docker container update --memory='8MB' http-simple-api
+docker container update --memory='8MB' go-micro-api
 
-docker container stats http-simple-api --no-stream
-docker container top http-simple-api
+docker container stats go-micro-api --no-stream
+docker container top go-micro-api
 
-docker container inspect http-simple-api
+docker container inspect go-micro-api
 
-docker container logs -f --tail 100 http-simple-api
+docker container logs -f --tail 100 go-micro-api
 
 curl --url 'http://localhost:9000/api/v1/message'
 curl --url 'http://localhost:9000/api/v1/health/live'
 curl --url 'http://localhost:9000/api/v1/health/ready'
 
-docker container rm -f http-simple-api
+docker container rm -f go-micro-api
 ```
 
 ## Running with Kubernetes
@@ -66,7 +66,7 @@ curl --url 'http://api.golang.local/api/v1/health/ready'
 kubectl get pod,svc,rs,ingress -n default
 
 kubectl logs -f \
-  -l app.kubernetes.io/name=http-simple-api \
+  -l app.kubernetes.io/name=go-micro-api \
   -n default --tail 100 --timestamps
 
 kubectl delete -f k8s/deployment.yaml

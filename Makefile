@@ -1,14 +1,14 @@
 SHELL=/bin/bash
 PACKAGES := $(shell go list ./)
 # docker variables
-DOCKER_REPO?=docker.io/juliocesarmidia/http-simple-api
+DOCKER_REPO?=docker.io/juliocesarmidia/go-micro-api
 DOCKER_TAG?=v1.0.0
 DOCKER_BUILDKIT=1
 BUILDKIT_PROGRESS=plain
 # application variables
 MESSAGE?="Hello World"
 # kubernetes variables
-RELEASE_NAME?="http-simple-api"
+RELEASE_NAME?="go-micro-api"
 
 all: help
 

@@ -1,7 +1,7 @@
 # Using Helm chart
 
 ```bash
-RELEASE_NAME="http-simple-api"
+RELEASE_NAME="go-micro-api"
 
 # create chart
 helm create "application"

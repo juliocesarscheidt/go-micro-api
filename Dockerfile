@@ -14,7 +14,7 @@ RUN GOOS=linux GOARCH=amd64 GO111MODULE=on CGO_ENABLED=0 \
 FROM gcr.io/distroless/static:nonroot
 
 LABEL maintainer="Julio Cesar <julio@blackdevs.com.br>"
-LABEL org.opencontainers.image.source "https://github.com/juliocesarscheidt/http-simple-api"
+LABEL org.opencontainers.image.source "https://github.com/juliocesarscheidt/go-micro-api"
 LABEL org.opencontainers.image.description "Simple Golang API"
 LABEL org.opencontainers.image.licenses "MIT"
 

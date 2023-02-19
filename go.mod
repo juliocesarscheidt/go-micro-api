@@ -1,4 +1,4 @@
-module github.com/juliocesarscheidt/http-simple-api
+module github.com/juliocesarscheidt/go-micro-api
 
 go 1.18
 
