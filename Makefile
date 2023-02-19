@@ -20,12 +20,12 @@ help: Makefile
 	@sed -n 's/^##//p' $< | column -t -s ':' |  sed -e 's/^/ /'
 	@echo
 
-## vet: vet code
+## vet: vet code with go CLI
 .PHONY: vet
 vet:
 	go vet $(PACKAGES)
 
-## test: run unit tests
+## test: run unit tests with go CLI
 .PHONY: test
 test:
 	go test -race -cover $(PACKAGES)
@@ -36,7 +36,7 @@ build:
 	GOOS=linux GOARCH=amd64 GO111MODULE=on CGO_ENABLED=0 \
     go build -ldflags="-s -w" -o ./main .
 
-## run: run the API
+## run: run the API with go CLI
 .PHONY: run
 run:
 	go run main.go

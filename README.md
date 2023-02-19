@@ -1,4 +1,6 @@
-# Simple Golang API
+# Micro Golang API
+
+Micro API made with Golang to run on containerized environments
 
 ## Using Makefile
 
@@ -38,7 +40,7 @@ docker container top http-simple-api
 
 docker container inspect http-simple-api
 
-docker container logs -f --tail 1000 http-simple-api
+docker container logs -f --tail 100 http-simple-api
 
 curl --url 'http://localhost:9000/api/v1/message'
 curl --url 'http://localhost:9000/api/v1/health/live'
@@ -65,7 +67,14 @@ kubectl get pod,svc,rs,ingress -n default
 
 kubectl logs -f \
   -l app.kubernetes.io/name=http-simple-api \
-  -n default --tail 1000 --timestamps
+  -n default --tail 100 --timestamps
 
 kubectl delete -f k8s/deployment.yaml
+```
+
+## Testing API benchmark with siege
+
+```bash
+siege --time 30S --concurrent 100 \
+  --benchmark 'http://localhost:9000/api/v1/message'
 ```
