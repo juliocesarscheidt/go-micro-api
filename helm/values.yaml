@@ -2,7 +2,6 @@ replicaCount: 1
 image:
   repository: juliocesarmidia/http-simple-api
   pullPolicy: IfNotPresent
-  # Overrides the image tag whose default is the chart version.
   tag: "v1.0.0"
 imagePullSecrets: []
 nameOverride: ""
@@ -39,7 +38,7 @@ ingress:
       - path: /api/v1/health/
         pathType: Prefix
   tls: []
-  #  - secretName: chart-example-tls
+  #  - secretName: http-simple-api-tls
   #    hosts:
   #      - api.golang.local
 resources:
