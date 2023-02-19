@@ -1,13 +1,12 @@
 package main
 
 import (
-	"fmt"
-	"os"
-	"time"
-	"net/http"
-	"encoding/json"
-	"os/signal"
 	"context"
+	"encoding/json"
+	"net/http"
+	"os"
+	"os/signal"
+	"time"
 
 	logrus "github.com/sirupsen/logrus"
 )
@@ -32,56 +31,45 @@ func buildJSONResponse(statusCode int, message string) ([]byte, error) {
 	var responseHTTP = make(map[string]interface{})
 	responseHTTP["statusCode"] = statusCode
 	responseHTTP["data"] = message
-	response, err := json.Marshal(responseHTTP)
-	if err != nil {
-		return nil, err
-	}
+	response, _ := json.Marshal(responseHTTP)
 	return []byte(string(response)), nil
 }
 
 func returnHTTPResponse(statusCode int, message string) http.HandlerFunc {
 	return func(writter http.ResponseWriter, req *http.Request) {
+		writter.Header().Set("Content-Type", "application/json")
 		responseJSONBytes, _ := buildJSONResponse(statusCode, message)
-
 		log.WithFields(logrus.Fields{
-			"host": req.Host,
-			"path": req.URL.Path,
+			"host":   req.Host,
+			"path":   req.URL.Path,
 			"method": req.Method,
 		}).Infof("")
-
-		writter.Header().Set("Content-Type", "application/json")
 		writter.WriteHeader(statusCode)
 		writter.Write(responseJSONBytes)
 	}
 }
 
-func ternary(statement bool, a, b interface{}) interface{} {
-	if statement {
-		return a
+func getFromEnvOrDefaultAsString(envParam, defaultValue string) string {
+	value := os.Getenv(envParam)
+	if value == "" {
+		value = defaultValue
 	}
-	return b
+	return value
 }
 
 func serve(address string, message string) {
-	http.HandleFunc("/api/v1/", returnHTTPResponse(http.StatusOK, message))
+	http.HandleFunc("/api/v1/message", returnHTTPResponse(http.StatusOK, message))
 	http.HandleFunc("/api/v1/healthcheck", returnHTTPResponse(http.StatusOK, "Healthy"))
-
 	http.ListenAndServe(address, nil)
 }
 
 func main() {
-	port := ternary(os.Getenv("API_PORT") != "", os.Getenv("API_PORT"), "9000").(string) // default 9000
-	address := fmt.Sprintf(":%s", port)
-	log.Infof("Using API_PORT :: %s", port)
-	message := ternary(os.Getenv("MESSAGE") != "", os.Getenv("MESSAGE"), "Hello World").(string) // default Hello World
-	log.Infof("Using MESSAGE :: %s", message)
-
+	message := getFromEnvOrDefaultAsString("MESSAGE", "Hello World")
+	log.Infof("Using var MESSAGE from env :: %s", message)
 	go func() {
-		serve(address, message)
+		serve(":9000", message)
 	}()
-
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer cancel()
-
 	<-ctx.Done()
 }

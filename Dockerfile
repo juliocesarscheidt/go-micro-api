@@ -3,25 +3,25 @@ LABEL maintainer="Julio Cesar <julio@blackdevs.com.br>"
 
 WORKDIR /go/src/app
 
-COPY go.mod go.sum /go/src/app/
+COPY go.mod go.sum ./
 RUN go mod download
 
-COPY main.go /go/src/app/main.go
+COPY ./ ./
 
-RUN GOOS=linux GOARCH=amd64 GO111MODULE=on CGO_ENABLED=0 go build -ldflags="-s -w" -o /go/src/app/main .
+RUN GOOS=linux GOARCH=amd64 GO111MODULE=on CGO_ENABLED=0 \
+    go build -ldflags="-s -w" -o ./main .
 
 FROM gcr.io/distroless/static:nonroot
+
+LABEL maintainer="Julio Cesar <julio@blackdevs.com.br>"
+LABEL org.opencontainers.image.source "https://github.com/juliocesarscheidt/http-simple-api"
+LABEL org.opencontainers.image.description "Simple Golang API"
+LABEL org.opencontainers.image.licenses "MIT"
 
 WORKDIR /
 COPY --from=builder /go/src/app/main .
 USER nonroot:nonroot
 
-ARG API_PORT
-ENV API_PORT=${API_PORT:-"9000"}
-
-ARG MESSAGE
-ENV MESSAGE=${MESSAGE:-"Hello World"}
-
-EXPOSE ${API_PORT}
+EXPOSE 9000
 
 ENTRYPOINT [ "/main" ]
