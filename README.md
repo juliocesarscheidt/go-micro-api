@@ -1,4 +1,4 @@
-# Micro Golang API
+# Go Micro API
 
 Micro API made with Golang to run on containerized environments
 
