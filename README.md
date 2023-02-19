@@ -1,6 +1,6 @@
 # Simple Golang API
 
-## Build
+## Docker
 
 ```bash
 docker image build --tag juliocesarmidia/http-simple-api:v1.0.0 .
