@@ -21,6 +21,7 @@ WORKSPACE_ID=$(az monitor log-analytics workspace show --resource-group $RESOURC
 sed -i "s/{{WORKSPACE_ID}}/${WORKSPACE_ID}/" container-group.yaml
 
 WORKSPACE_KEY=$(az monitor log-analytics workspace get-shared-keys --resource-group $RESOURCE_GROUP --workspace-name $LOG_ANALYTICS_WORKSPACE_NAME --query "primarySharedKey" --out tsv)
+WORKSPACE_KEY=$(echo "$WORKSPACE_KEY" | sed -r 's/\//\\\//gm')
 sed -i "s/{{WORKSPACE_KEY}}/${WORKSPACE_KEY}/" container-group.yaml
 ```
 
@@ -41,13 +42,22 @@ az container logs --resource-group $RESOURCE_GROUP --name $CONTAINER_NAME --foll
 # query to get some logs on log analytics
 ContainerInstanceLog_CL
 | project parse_json(Message)
-| project Message.host, Message.message, Message.method, Message.path, Message.severity, Message.timestamp
-| where Message_path == "/api/v1/message"
+| project
+  Host = Message.host,
+  Ip = Message.ip,
+  Msg = Message.message,
+  Method = Message.method,
+  Path = Message.path,
+  Severity = Message.severity,
+  Timestamp = Message.timestamp
+| where Path hasprefix "/api/v1/message"
+| order by totimespan(Timestamp) desc
+| take 10
 
 # clean up
-az container delete --resource-group $RESOURCE_GROUP --name $CONTAINER_NAME
+az container delete --resource-group $RESOURCE_GROUP --name $CONTAINER_NAME --yes
 
-az monitor log-analytics workspace delete --resource-group $RESOURCE_GROUP --workspace-name $LOG_ANALYTICS_WORKSPACE_NAME
+az monitor log-analytics workspace delete --resource-group $RESOURCE_GROUP --workspace-name $LOG_ANALYTICS_WORKSPACE_NAME --yes
 
-az group delete --name $RESOURCE_GROUP
+az group delete --name $RESOURCE_GROUP --yes
 ```

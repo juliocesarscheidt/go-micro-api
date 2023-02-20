@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"time"
 
 	logrus "github.com/sirupsen/logrus"
@@ -39,8 +40,10 @@ func returnHTTPResponse(statusCode int, message string) http.HandlerFunc {
 	return func(writter http.ResponseWriter, req *http.Request) {
 		writter.Header().Set("Content-Type", "application/json")
 		responseJSONBytes, _ := buildJSONResponse(statusCode, message)
+		remoteIp := strings.Split(req.RemoteAddr, ":")[0]
 		log.WithFields(logrus.Fields{
 			"host":   req.Host,
+			"ip":     remoteIp,
 			"path":   req.URL.Path,
 			"method": req.Method,
 		}).Infof("")

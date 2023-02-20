@@ -1,0 +1,32 @@
+name: Pipeline CI - PR Close
+
+on:
+  # schedule:
+  #   - cron: "0 0 * * *"
+
+  # push:
+  #   branches: [main]
+  #   tags: ["v*.*.*"]
+
+  pull_request:
+    branches: [main, development]
+    types: [closed]
+
+jobs:
+  comment:
+    name: Comment
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    defaults:
+      run:
+        shell: bash
+    steps:
+    - name: Comment on PR
+      uses: mshick/add-pr-comment@v1
+      with:
+        message: |
+          The PR was closed successfully!
+        repo-token: ${{ secrets.GITHUB_TOKEN }}
+        repo-token-user-login: "github-actions[bot]"
+        allow-repeats: false

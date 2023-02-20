@@ -1,0 +1,102 @@
+name: Pipeline CI - PR Open
+
+on:
+  # schedule:
+  #   - cron: "0 0 * * *"
+
+  # push:
+  #   branches: [main, development]
+  #   tags: ["v*.*.*"]
+
+  pull_request:
+    branches: [main, development]
+    types: [opened, reopened, synchronize, edited]
+
+env: {}
+
+jobs:
+  build:
+    name: Build and Check Image
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+    env: {}
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+    - name: Set up QEMU
+      uses: docker/setup-qemu-action@v2
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v2
+    - name: Build image
+      run: |
+        docker image build \
+          --tag docker.io/juliocesarmidia/go-micro-api:${{ github.event.number }} .
+    - name: Run Trivy vulnerability scanner
+      uses: aquasecurity/trivy-action@master
+      with:
+        image-ref: 'docker.io/juliocesarmidia/go-micro-api:${{ github.event.number }}'
+        scan-type: 'image'
+        format: 'table'
+        exit-code: '1'
+        ignore-unfixed: true
+        vuln-type: 'os,library'
+        severity: 'CRITICAL'
+
+  push:
+    name: Push Image
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    defaults:
+      run:
+        shell: bash
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+    - name: Set up QEMU
+      uses: docker/setup-qemu-action@v2
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v2
+    - id: setShortSha
+      name: Set short SHA
+      run: echo "SHA_SHORT=$(git rev-parse --short=7 HEAD)" >> $GITHUB_OUTPUT
+    - name: Login to Docker Registry
+      uses: docker/login-action@v2
+      with:
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_TOKEN }}
+    - name: Push image to Docker and Github Registries
+      uses: docker/build-push-action@v4
+      with:
+        push: true
+        context: ./
+        tags: |
+          docker.io/juliocesarmidia/go-micro-api:${{ steps.setShortSha.outputs.SHA_SHORT }}
+          docker.io/juliocesarmidia/go-micro-api:v1.0.0
+        labels: |
+          maintainer="Julio Cesar <julio@blackdevs.com.br>"
+          org.opencontainers.image.source="https://github.com/juliocesarscheidt/go-micro-api"
+          org.opencontainers.image.description="Micro API made with Golang to run on containerized environments"
+          org.opencontainers.image.licenses="MIT"
+
+  comment:
+    name: Comment
+    needs: push
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    defaults:
+      run:
+        shell: bash
+    steps:
+    - name: Comment on PR
+      uses: mshick/add-pr-comment@v1
+      with:
+        message: |
+          :rocket: The build was successful, the docker image docker.io/juliocesarmidia/go-micro-api was pushed to the registries!
+        repo-token: ${{ secrets.GITHUB_TOKEN }}
+        repo-token-user-login: "github-actions[bot]"
+        allow-repeats: false

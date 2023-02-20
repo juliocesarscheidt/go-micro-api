@@ -15,7 +15,7 @@ FROM gcr.io/distroless/static:nonroot
 
 LABEL maintainer="Julio Cesar <julio@blackdevs.com.br>"
 LABEL org.opencontainers.image.source "https://github.com/juliocesarscheidt/go-micro-api"
-LABEL org.opencontainers.image.description "Simple Golang API"
+LABEL org.opencontainers.image.description "Micro API made with Golang to run on containerized environments"
 LABEL org.opencontainers.image.licenses "MIT"
 
 WORKDIR /
