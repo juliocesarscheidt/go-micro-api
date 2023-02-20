@@ -1,0 +1,59 @@
+apiVersion: 2019-12-01
+location: eastus
+name: go-micro-api
+type: Microsoft.ContainerInstance/containerGroups
+identity:
+  type: SystemAssigned
+tags:
+  environment: development
+properties:
+  containers:
+  - name: go-micro-api
+    properties:
+      image: docker.io/juliocesarmidia/go-micro-api:v1.0.0
+      resources:
+        requests:
+          cpu: 1
+          memoryInGb: 1
+        limits:
+          cpu: 1
+          memoryInGb: 1
+      ports:
+      - port: 9000
+        protocol: tcp
+      environmentVariables:
+      - name: MESSAGE
+        value: "Hello World From ACI"
+      livenessProbe:
+        httpGet:
+          path: "/api/v1/health/live"
+          port: 9000
+          scheme: http
+        initialDelaySeconds: 10
+        periodSeconds: 15
+        failureThreshold: 10
+        successThreshold: 1
+        timeoutSeconds: 10
+      readinessProbe:
+        httpGet:
+          path: "/api/v1/health/ready"
+          port: 9000
+          scheme: http
+        initialDelaySeconds: 10
+        periodSeconds: 15
+        failureThreshold: 10
+        successThreshold: 1
+        timeoutSeconds: 10
+  restartPolicy: OnFailure
+  osType: Linux
+  diagnostics:
+    logAnalytics:
+      workspaceId: {{WORKSPACE_ID}}
+      workspaceKey: {{WORKSPACE_KEY}}
+      logType: ContainerInstanceLogs
+  ipAddress:
+    type: Public
+    dnsNameLabel: go-micro-api
+    ports:
+    - port: 9000
+      protocol: tcp
