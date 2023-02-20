@@ -18,10 +18,12 @@ az group create --name $RESOURCE_GROUP --location eastus
 az monitor log-analytics workspace create --resource-group $RESOURCE_GROUP --workspace-name $LOG_ANALYTICS_WORKSPACE_NAME --location eastus
 
 WORKSPACE_ID=$(az monitor log-analytics workspace show --resource-group $RESOURCE_GROUP --workspace-name $LOG_ANALYTICS_WORKSPACE_NAME --query "customerId" --out tsv)
+
 sed -i "s/{{WORKSPACE_ID}}/${WORKSPACE_ID}/" container-group.yaml
 
 WORKSPACE_KEY=$(az monitor log-analytics workspace get-shared-keys --resource-group $RESOURCE_GROUP --workspace-name $LOG_ANALYTICS_WORKSPACE_NAME --query "primarySharedKey" --out tsv)
 WORKSPACE_KEY=$(echo "$WORKSPACE_KEY" | sed -r 's/\//\\\//gm')
+
 sed -i "s/{{WORKSPACE_KEY}}/${WORKSPACE_KEY}/" container-group.yaml
 ```
 
