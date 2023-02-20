@@ -8,7 +8,7 @@
 
 ```bash
 RESOURCE_GROUP="go-micro-api-rg"
-LOG_ANALYTICS_WORKSPACE_NAME="go-micro-api-log"
+LOG_ANALYTICS_WORKSPACE_NAME="go-micro-api-log-analytics"
 CONTAINER_NAME="go-micro-api"
 
 # create resource group
