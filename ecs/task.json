@@ -1,0 +1,41 @@
+{
+  "containerDefinitions": [{
+    "name": "go-micro-api",
+    "image": "docker.io/juliocesarmidia/go-micro-api:v1.0.0",
+    "cpu": 0,
+    "portMappings": [{
+      "containerPort": 9000,
+      "hostPort": 0,
+      "protocol": "tcp"
+    }],
+    "essential": true,
+    "environment": [{
+      "name": "MESSAGE",
+      "value": "Hello World From ECS"
+    }],
+    "environmentFiles": [],
+    "mountPoints": [],
+    "volumesFrom": [],
+    "logConfiguration": {
+      "logDriver": "awslogs",
+      "options": {
+        "awslogs-create-group": "true",
+        "awslogs-group": "/ecs/go-micro-api",
+        "awslogs-region": "{{ECS_REGION}}",
+        "awslogs-stream-prefix": "ecs"
+      }
+    }
+  }],
+  "family": "go-micro-api",
+  "taskRoleArn": "",
+  "executionRoleArn": "arn:aws:iam::{{ACCOUNT_ID}}:role/AmazonECSTaskExecutionRole",
+  "networkMode": "awsvpc",
+  "volumes": [],
+  "placementConstraints": [],
+  "requiresCompatibilities": [
+    "FARGATE"
+  ],
+  "cpu": "512",
+  "memory": "1024",
+  "tags": []
+}
