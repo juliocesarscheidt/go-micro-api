@@ -19,11 +19,105 @@ ECS_SG_NAME="$API_NAME-sg"
 ALB_NAME="$API_NAME-alb"
 ALB_SG_NAME="$API_NAME-alb-sg"
 ALB_TG_NAME="$API_NAME-tg"
+# vpc config
+VPC_NAME="$API_NAME-vpc"
+INT_GW_NAME="$API_NAME-int-gw"
+NAT_GW_NAME="$API_NAME-nat-gw"
+SUBNETS_PREFIX_NAME="$API_NAME-subnet"
+PUBLIC_ROUTE_TB_NAME="$API_NAME-public-rt"
+PRIVATE_ROUTE_TB_NAME="$API_NAME-private-rt"
+
 
 # vpc config, create vpc with 2 public and 2 private subnets
-VPC_ID="vpc-00000000000000000"
-PUBLIC_SUBNET_IDS="subnet-00000000000000000,subnet-00000000000000000"
-PRIVATE_SUBNET_IDS="subnet-00000000000000000,subnet-00000000000000000"
+# min 10.100.0.0
+# max 10.100.15.255
+VPC_ID=$(aws ec2 create-vpc --region $REGION \
+  --cidr-block 10.100.0.0/20 \
+  --tag-specification ResourceType=vpc,Tags="[{Key=Name,Value=$VPC_NAME}]" \
+  --query 'Vpc.VpcId' --output text)
+# enable dns hostnames
+aws ec2 modify-vpc-attribute --region $REGION --vpc-id "$VPC_ID" --enable-dns-hostnames '{"Value":true}'
+
+
+# create internet gateway
+INT_GW_ID=$(aws ec2 create-internet-gateway --region $REGION --tag-specification ResourceType=internet-gateway,Tags="[{Key=Name,Value=$INT_GW_NAME}]" --query 'InternetGateway.InternetGatewayId' --output text)
+# attach internet gateway to vpc
+aws ec2 attach-internet-gateway --region $REGION --internet-gateway-id "$INT_GW_ID" --vpc-id "$VPC_ID"
+
+
+# public subnets setup
+# create route table
+PUBLIC_RT_ID=$(aws ec2 create-route-table \
+  --region $REGION \
+  --vpc-id "$VPC_ID" \
+  --tag-specification ResourceType=route-table,Tags="[{Key=Name,Value=$PUBLIC_ROUTE_TB_NAME}]" \
+  --query 'RouteTable.RouteTableId' --output text)
+# add route to internet gateway
+aws ec2 create-route --region $REGION --route-table-id "$PUBLIC_RT_ID" --destination-cidr-block "0.0.0.0/0" --gateway-id "$INT_GW_ID"
+
+function create_public_subnet() {
+  local SUBNET_NAME="$1"
+  local CIDR="$2"
+  local AZ="$3"
+  local VPC_ID="$4"
+  local RT_ID="$5"
+  SUBNET_ID=$(aws ec2 create-subnet --region $REGION \
+    --cidr-block "$CIDR" \
+    --availability-zone "$AZ" \
+    --vpc-id "$VPC_ID" \
+    --tag-specification ResourceType=subnet,Tags="[{Key=Name,Value=$SUBNET_NAME}]" \
+    --query 'Subnet.SubnetId' --output text)
+  # use public ip
+  aws ec2 modify-subnet-attribute --region $REGION --subnet-id "$SUBNET_ID" --map-public-ip-on-launch 1> /dev/null
+  # associate subnet with public route table
+  aws ec2 associate-route-table --region $REGION --subnet-id "$SUBNET_ID" --route-table-id "$RT_ID" 1> /dev/null
+  echo "$SUBNET_ID"
+}
+PUBLIC_SUBNET_ID_A=$(create_public_subnet "${SUBNETS_PREFIX_NAME}-public-a" "10.100.0.0/24" "${REGION}a" "$VPC_ID" "$PUBLIC_RT_ID")
+PUBLIC_SUBNET_ID_B=$(create_public_subnet "${SUBNETS_PREFIX_NAME}-public-b" "10.100.1.0/24" "${REGION}b" "$VPC_ID" "$PUBLIC_RT_ID")
+PUBLIC_SUBNET_IDS="$PUBLIC_SUBNET_ID_A,$PUBLIC_SUBNET_ID_B"
+echo "$PUBLIC_SUBNET_IDS"
+
+
+# private subnets setup
+# allocate public ip
+EIP_ALLOC_ID=$(aws ec2 allocate-address --region $REGION --query 'AllocationId' --output text)
+# create nat gateway
+NAT_GW_ID=$(aws ec2 create-nat-gateway --region $REGION \
+  --subnet-id $PUBLIC_SUBNET_ID_A \
+  --tag-specification ResourceType=natgateway,Tags="[{Key=Name,Value=$NAT_GW_NAME}]" \
+  --allocation-id $EIP_ALLOC_ID \
+  --query 'NatGateway.NatGatewayId' --output text)
+# create route table
+PRIVATE_RT_ID=$(aws ec2 create-route-table \
+  --region $REGION \
+  --vpc-id "$VPC_ID" \
+  --tag-specification ResourceType=route-table,Tags="[{Key=Name,Value=$PRIVATE_ROUTE_TB_NAME}]" \
+  --query 'RouteTable.RouteTableId' --output text)
+# wait for nat gateway to be ready
+sleep 30
+# route to nat available
+aws ec2 create-route --region $REGION --route-table-id "$PRIVATE_RT_ID" --destination-cidr-block "0.0.0.0/0" --nat-gateway-id "$NAT_GW_ID"
+
+function create_private_subnet() {
+  local SUBNET_NAME="$1"
+  local CIDR="$2"
+  local AZ="$3"
+  local VPC_ID="$4"
+  local RT_ID="$5"
+  SUBNET_ID=$(aws ec2 create-subnet --region $REGION \
+    --cidr-block "$CIDR" \
+    --availability-zone "$AZ" \
+    --vpc-id "$VPC_ID" \
+    --tag-specification ResourceType=subnet,Tags="[{Key=Name,Value=$SUBNET_NAME}]" \
+    --query 'Subnet.SubnetId' --output text)
+   # associate subnet with private route table
+  aws ec2 associate-route-table --region $REGION --subnet-id "$SUBNET_ID" --route-table-id "$RT_ID" 1> /dev/null
+  echo "$SUBNET_ID"
+}
+PRIVATE_SUBNET_IDS="$(create_private_subnet "${SUBNETS_PREFIX_NAME}-private-a" "10.100.2.0/24" "${REGION}a" "$VPC_ID" "$PRIVATE_RT_ID"),$(create_private_subnet "${SUBNETS_PREFIX_NAME}-private-b" "10.100.3.0/24" "${REGION}b" "$VPC_ID" "$PRIVATE_RT_ID")"
+echo "$PRIVATE_SUBNET_IDS"
+
 
 # create role for ecs AmazonECSTaskExecutionRole
 aws iam create-role \
@@ -37,7 +131,11 @@ aws iam attach-role-policy \
 aws iam attach-role-policy \
   --policy-arn "arn:aws:iam::aws:policy/service-role/AmazonECS_FullAccess" \
   --role-name AmazonECSTaskExecutionRole
+```
 
+## Creating the ALB and ECS
+
+```bash
 # create ecs cluster
 aws ecs create-cluster --region $REGION --cluster-name $ECS_CLUSTER
 
