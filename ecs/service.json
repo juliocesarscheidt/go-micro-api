@@ -1,0 +1,9 @@
+{
+  "loadBalancers": [
+    {
+      "targetGroupArn": "{{ALB_TG_ARN}}",
+      "containerName": "{{API_NAME}}",
+      "containerPort": 9000
+    }
+  ]
+}
