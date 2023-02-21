@@ -97,20 +97,18 @@ func getFromEnvOrDefaultAsString(envParam, defaultValue string) string {
 	return value
 }
 
-func serve(address string, message string) {
+func main() {
+	message := getFromEnvOrDefaultAsString("MESSAGE", "Hello World")
+	Log.Infof("Using var MESSAGE from env :: %s", message)
+	// add routes
 	http.HandleFunc("/api/v1/message", returnHTTPResponse(http.StatusOK, message))
 	http.HandleFunc("/api/v1/ping", returnHTTPResponse(http.StatusOK, "Pong"))
 	http.HandleFunc("/api/v1/health/live", returnHTTPResponse(http.StatusOK, "Alive"))
 	http.HandleFunc("/api/v1/health/ready", returnHTTPResponse(http.StatusOK, "Ready"))
 	http.Handle("/metrics", promhttp.Handler())
-	http.ListenAndServe(address, nil)
-}
-
-func main() {
-	message := getFromEnvOrDefaultAsString("MESSAGE", "Hello World")
-	Log.Infof("Using var MESSAGE from env :: %s", message)
+	// start listening inside other goroutine
 	go func() {
-		serve(":9000", message)
+		http.ListenAndServe(":9000", nil)
 	}()
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer cancel()

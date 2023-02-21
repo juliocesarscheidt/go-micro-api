@@ -133,7 +133,7 @@ aws iam attach-role-policy \
   --role-name AmazonECSTaskExecutionRole
 ```
 
-## Creating the ALB and ECS
+## Creating the load balancer and ECS
 
 ```bash
 # create ecs cluster

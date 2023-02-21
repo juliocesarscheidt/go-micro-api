@@ -52,8 +52,11 @@ properties:
       workspaceKey: {{WORKSPACE_KEY}}
       logType: ContainerInstanceLogs
   ipAddress:
-    type: Public
+    type: Private
     dnsNameLabel: go-micro-api
     ports:
     - port: 9000
       protocol: tcp
+  subnetIds:
+    - id: {{SUBNET_ID}}
+      name: {{CONTAINER_SUBNET_NAME}}
