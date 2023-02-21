@@ -17,9 +17,12 @@ VNET_NAME="$API_NAME-vnet"
 SUBNETS_PREFIX_NAME="$API_NAME-subnet"
 LB_IP_NAME="$API_NAME-pub-ip"
 
+
 # create resource group
 az group create --name $RESOURCE_GROUP --location $LOCATION
 
+
+# network config
 LB_SUBNET_NAME="${SUBNETS_PREFIX_NAME}-a"
 az network vnet create \
   --name $VNET_NAME \
