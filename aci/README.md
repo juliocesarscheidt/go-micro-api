@@ -41,8 +41,9 @@ CONTAINER_SUBNET_ID=$(az network vnet subnet create \
   --query "id" --out tsv)
 
 # replace config on yaml file
-sed -i "s/{{SUBNET_ID}}/${CONTAINER_SUBNET_ID}/" container-group.yaml
 sed -i "s/{{SUBNET_NAME}}/${CONTAINER_SUBNET_NAME}/" container-group.yaml
+CONTAINER_SUBNET_ID=$(echo "$CONTAINER_SUBNET_ID" | sed -r 's/\//\\\//gm')
+sed -i "s/{{SUBNET_ID}}/${CONTAINER_SUBNET_ID}/" container-group.yaml
 
 
 # create log analytics workspace

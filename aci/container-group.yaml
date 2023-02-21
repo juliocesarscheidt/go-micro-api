@@ -59,4 +59,4 @@ properties:
       protocol: tcp
   subnetIds:
     - id: {{SUBNET_ID}}
-      name: {{CONTAINER_SUBNET_NAME}}
+      name: {{SUBNET_NAME}}
