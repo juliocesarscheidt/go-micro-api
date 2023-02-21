@@ -4,6 +4,10 @@
 
 > https://learn.microsoft.com/en-us/azure/container-instances/container-instances-quickstart
 
+> https://learn.microsoft.com/en-us/azure/container-instances/container-instances-vnet
+
+> https://learn.microsoft.com/en-us/azure/container-instances/container-instances-application-gateway
+
 ## Preparing resources
 
 ```bash
@@ -40,6 +44,12 @@ CONTAINER_SUBNET_ID=$(az network vnet subnet create \
   --address-prefix 10.100.1.0/24 \
   --query "id" --out tsv)
 
+# add delegation for container subnet to Microsoft.ContainerInstance.containerGroups
+az network vnet subnet list-available-delegations --resource-group $RESOURCE_GROUP | grep Microsoft.ContainerInstance
+
+az network vnet subnet update -g $RESOURCE_GROUP -n $CONTAINER_SUBNET_NAME --vnet-name $VNET_NAME --delegations 'Microsoft.ContainerInstance.containerGroups'
+
+
 # replace config on yaml file
 sed -i "s/{{SUBNET_NAME}}/${CONTAINER_SUBNET_NAME}/" container-group.yaml
 CONTAINER_SUBNET_ID=$(echo "$CONTAINER_SUBNET_ID" | sed -r 's/\//\\\//gm')
@@ -57,6 +67,31 @@ WORKSPACE_KEY=$(az monitor log-analytics workspace get-shared-keys --resource-gr
 WORKSPACE_KEY=$(echo "$WORKSPACE_KEY" | sed -r 's/\//\\\//gm')
 # replace config on yaml file
 sed -i "s/{{WORKSPACE_KEY}}/${WORKSPACE_KEY}/" container-group.yaml
+
+
+REGISTRY_USERNAME="gomicroapi"
+REGISTRY_URL=$REGISTRY_USERNAME.azurecr.io
+
+# create acr repository
+az acr create --resource-group $RESOURCE_GROUP --name $REGISTRY_USERNAME --sku Basic
+# enable admin password
+az acr update --admin-enabled true --resource-group $RESOURCE_GROUP --name $REGISTRY_USERNAME
+# retrieve password
+REGISTRY_PASSWORD="$(az acr credential show --resource-group $RESOURCE_GROUP --name $REGISTRY_USERNAME --query passwords[0].value | sed 's/^"//; s/"$//')"
+# login
+echo "$REGISTRY_PASSWORD" | docker login "$REGISTRY_URL" --username "$REGISTRY_USERNAME" --password-stdin
+
+# get image from docker and push to acr
+docker image pull docker.io/juliocesarmidia/go-micro-api:v1.0.0
+docker image tag docker.io/juliocesarmidia/go-micro-api:v1.0.0 "$REGISTRY_URL/go-micro-api:v1.0.0"
+docker image push "$REGISTRY_URL/go-micro-api:v1.0.0"
+
+
+# replace more configs on yaml
+sed -i "s/{{REGISTRY_URL}}/${REGISTRY_URL}/; s/{{REGISTRY_USERNAME}}/${REGISTRY_USERNAME}/; s/{{REGISTRY_PASSWORD}}/${REGISTRY_PASSWORD}/" container-group.yaml
+
+
+sed -i "s/{{LOCATION}}/${LOCATION}/" container-group.yaml
 ```
 
 ## Creating the load balancer and container group

@@ -119,6 +119,11 @@ PRIVATE_SUBNET_IDS="$(create_private_subnet "${SUBNETS_PREFIX_NAME}-private-a" "
 echo "$PRIVATE_SUBNET_IDS"
 
 
+# cloudwatch log group
+aws logs create-log-group --region $REGION --log-group-name "/ecs/$API_NAME"
+aws logs put-retention-policy --region $REGION --log-group-name "/ecs/$API_NAME" --retention-in-days 1
+
+
 # create role for ecs AmazonECSTaskExecutionRole
 aws iam create-role \
   --role-name AmazonECSTaskExecutionRole \

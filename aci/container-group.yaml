@@ -1,5 +1,5 @@
-apiVersion: 2019-12-01
-location: eastus
+apiVersion: 2021-10-01
+location: {{LOCATION}}
 name: go-micro-api
 type: Microsoft.ContainerInstance/containerGroups
 identity:
@@ -10,7 +10,7 @@ properties:
   containers:
   - name: go-micro-api
     properties:
-      image: docker.io/juliocesarmidia/go-micro-api:v1.0.0
+      image: {{REGISTRY_URL}}/go-micro-api:v1.0.0
       resources:
         requests:
           cpu: 1
@@ -46,6 +46,10 @@ properties:
         timeoutSeconds: 10
   restartPolicy: OnFailure
   osType: Linux
+  imageRegistryCredentials:
+  - server: {{REGISTRY_URL}}
+    username: {{REGISTRY_USERNAME}}
+    password: {{REGISTRY_PASSWORD}}
   diagnostics:
     logAnalytics:
       workspaceId: {{WORKSPACE_ID}}
@@ -53,7 +57,7 @@ properties:
       logType: ContainerInstanceLogs
   ipAddress:
     type: Private
-    dnsNameLabel: go-micro-api
+    # dnsNameLabel: go-micro-api # only works for public containers
     ports:
     - port: 9000
       protocol: tcp
