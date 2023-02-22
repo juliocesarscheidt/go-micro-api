@@ -10,7 +10,7 @@ properties:
   containers:
   - name: go-micro-api
     properties:
-      image: {{REGISTRY_URL}}/go-micro-api:v1.0.0
+      image: {{REGISTRY_USERNAME}}.azurecr.io/go-micro-api:v1.0.0
       resources:
         requests:
           cpu: 1
@@ -47,7 +47,7 @@ properties:
   restartPolicy: OnFailure
   osType: Linux
   imageRegistryCredentials:
-  - server: {{REGISTRY_URL}}
+  - server: {{REGISTRY_USERNAME}}.azurecr.io
     username: {{REGISTRY_USERNAME}}
     password: {{REGISTRY_PASSWORD}}
   diagnostics:
@@ -57,7 +57,6 @@ properties:
       logType: ContainerInstanceLogs
   ipAddress:
     type: Private
-    # dnsNameLabel: go-micro-api # only works for public containers
     ports:
     - port: 9000
       protocol: tcp

@@ -19,6 +19,7 @@ LOG_ANALYTICS_WORKSPACE_NAME="$API_NAME-log-analytics"
 # network setting
 VNET_NAME="$API_NAME-vnet"
 SUBNETS_PREFIX_NAME="$API_NAME-subnet"
+LB_NAME="$API_NAME-app-gw"
 LB_IP_NAME="$API_NAME-pub-ip"
 
 
@@ -52,6 +53,7 @@ az network vnet subnet update -g $RESOURCE_GROUP -n $CONTAINER_SUBNET_NAME --vne
 
 # replace config on yaml file
 sed -i "s/{{SUBNET_NAME}}/${CONTAINER_SUBNET_NAME}/" container-group.yaml
+
 CONTAINER_SUBNET_ID=$(echo "$CONTAINER_SUBNET_ID" | sed -r 's/\//\\\//gm')
 sed -i "s/{{SUBNET_ID}}/${CONTAINER_SUBNET_ID}/" container-group.yaml
 
@@ -70,7 +72,7 @@ sed -i "s/{{WORKSPACE_KEY}}/${WORKSPACE_KEY}/" container-group.yaml
 
 
 REGISTRY_USERNAME="gomicroapi"
-REGISTRY_URL=$REGISTRY_USERNAME.azurecr.io
+REGISTRY_URL="$REGISTRY_USERNAME.azurecr.io"
 
 # create acr repository
 az acr create --resource-group $RESOURCE_GROUP --name $REGISTRY_USERNAME --sku Basic
@@ -88,9 +90,9 @@ docker image push "$REGISTRY_URL/go-micro-api:v1.0.0"
 
 
 # replace more configs on yaml
-sed -i "s/{{REGISTRY_URL}}/${REGISTRY_URL}/; s/{{REGISTRY_USERNAME}}/${REGISTRY_USERNAME}/; s/{{REGISTRY_PASSWORD}}/${REGISTRY_PASSWORD}/" container-group.yaml
+sed -i "s/{{REGISTRY_USERNAME}}/${REGISTRY_USERNAME}/; s/{{REGISTRY_PASSWORD}}/${REGISTRY_PASSWORD}/" container-group.yaml
 
-
+# replace location
 sed -i "s/{{LOCATION}}/${LOCATION}/" container-group.yaml
 ```
 
@@ -114,16 +116,26 @@ az network public-ip create \
   --sku Standard
 
 az network application-gateway create \
-  --name myAppGateway \
+  --name $LB_NAME \
   --location $LOCATION \
   --resource-group $RESOURCE_GROUP \
-  --capacity 2 \
+  --capacity 1 \
   --sku Standard_v2 \
   --http-settings-protocol http \
+  --priority 1000 \
   --public-ip-address $LB_IP_NAME \
   --vnet-name $VNET_NAME \
   --subnet $LB_SUBNET_NAME \
   --servers "$CONTAINER_IP"
+
+# adjust gateway healthcheck
+PROBE_NAME="healthProbe"
+az network application-gateway probe create -g $RESOURCE_GROUP --gateway-name $LB_NAME -n $PROBE_NAME --protocol http --host '127.0.0.1' --path '/api/v1/health/live' --port 9000 --interval 15 --protocol http --timeout 10 --threshold 10
+
+# adjust http settings
+LB_GW_BACKEND_SETTINGS_NAME=$(az network application-gateway http-settings list -g $RESOURCE_GROUP --gateway-name $LB_NAME --query '[0].name' --output tsv)
+
+az network application-gateway http-settings update -g $RESOURCE_GROUP --gateway-name $LB_NAME -n $LB_GW_BACKEND_SETTINGS_NAME --port 9000 --protocol http --enable-probe 1 --probe $PROBE_NAME
 
 
 # show public ip
@@ -132,7 +144,7 @@ LB_PUB_IP=$(az network public-ip show \
   --name $LB_IP_NAME \
   --query [ipAddress] --output tsv)
 
-curl --url "http://${LB_PUB_IP}:9000/api/v1/message"
+curl --url "http://${LB_PUB_IP}/api/v1/message"
 # {"data":"Hello World From ACI","statusCode":200}
 
 
