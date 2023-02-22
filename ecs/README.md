@@ -134,7 +134,7 @@ aws iam attach-role-policy \
   --role-name AmazonECSTaskExecutionRole
 
 aws iam attach-role-policy \
-  --policy-arn "arn:aws:iam::aws:policy/service-role/AmazonECS_FullAccess" \
+  --policy-arn "arn:aws:iam::aws:policy/AmazonECS_FullAccess" \
   --role-name AmazonECSTaskExecutionRole
 ```
 
@@ -192,6 +192,7 @@ aws elbv2 create-listener --region $REGION \
   --default-actions Type=forward,TargetGroupArn=$ALB_TG_ARN
 
 # create service bound to the target group
+ALB_TG_ARN=$(echo "$ALB_TG_ARN" | sed -r 's/\//\\\//gm')
 sed -i "s/{{ALB_TG_ARN}}/${ALB_TG_ARN}/; s/{{API_NAME}}/${API_NAME}/" service.json
 
 aws ecs create-service --region $REGION \
