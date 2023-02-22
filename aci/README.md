@@ -10,13 +10,17 @@
 LOCATION="eastus"
 RESOURCE_GROUP="go-micro-api-rg"
 API_NAME="go-micro-api"
-# log analytics
+# log analytics settings
 LOG_ANALYTICS_WORKSPACE_NAME="$API_NAME-log-analytics"
-# network setting
+# network settings
 VNET_NAME="$API_NAME-vnet"
 SUBNETS_PREFIX_NAME="$API_NAME-subnet"
-LB_NAME="$API_NAME-app-gw"
-LB_IP_NAME="$API_NAME-pub-ip"
+# application gateway settings
+APP_GW_NAME="$API_NAME-app-gw"
+APP_GW_IP_NAME="$API_NAME-pub-ip"
+# registry settings
+REGISTRY_USERNAME="gomicroapi"
+REGISTRY_URL="$REGISTRY_USERNAME.azurecr.io"
 
 
 # create resource group
@@ -41,9 +45,7 @@ CONTAINER_SUBNET_ID=$(az network vnet subnet create \
   --address-prefix 10.100.1.0/24 \
   --query "id" --out tsv)
 
-# add delegation for container subnet to Microsoft.ContainerInstance.containerGroups
-az network vnet subnet list-available-delegations --resource-group $RESOURCE_GROUP | grep Microsoft.ContainerInstance
-
+# add delegation for container subnet
 az network vnet subnet update -g $RESOURCE_GROUP -n $CONTAINER_SUBNET_NAME --vnet-name $VNET_NAME --delegations 'Microsoft.ContainerInstance.containerGroups'
 
 
@@ -66,9 +68,6 @@ WORKSPACE_KEY=$(echo "$WORKSPACE_KEY" | sed -r 's/\//\\\//gm')
 # replace config on yaml file
 sed -i "s/{{WORKSPACE_KEY}}/${WORKSPACE_KEY}/" container-group.yaml
 
-
-REGISTRY_USERNAME="gomicroapi"
-REGISTRY_URL="$REGISTRY_USERNAME.azurecr.io"
 
 # create acr repository
 az acr create --resource-group $RESOURCE_GROUP --name $REGISTRY_USERNAME --sku Basic
@@ -107,40 +106,40 @@ CONTAINER_IP=$(az container show \
 # create application gateway
 az network public-ip create \
   --resource-group $RESOURCE_GROUP \
-  --name $LB_IP_NAME \
+  --name $APP_GW_IP_NAME \
   --allocation-method Static \
   --sku Standard
 
 az network application-gateway create \
-  --name $LB_NAME \
+  --name $APP_GW_NAME \
   --location $LOCATION \
   --resource-group $RESOURCE_GROUP \
   --capacity 1 \
   --sku Standard_v2 \
   --http-settings-protocol http \
   --priority 1000 \
-  --public-ip-address $LB_IP_NAME \
+  --public-ip-address $APP_GW_IP_NAME \
   --vnet-name $VNET_NAME \
   --subnet $LB_SUBNET_NAME \
   --servers "$CONTAINER_IP"
 
 # adjust gateway healthcheck
 PROBE_NAME="healthProbe"
-az network application-gateway probe create -g $RESOURCE_GROUP --gateway-name $LB_NAME -n $PROBE_NAME --protocol http --host '127.0.0.1' --path '/api/v1/health/live' --port 9000 --interval 15 --protocol http --timeout 10 --threshold 10
+az network application-gateway probe create -g $RESOURCE_GROUP --gateway-name $APP_GW_NAME -n $PROBE_NAME --protocol http --host '127.0.0.1' --path '/api/v1/health/live' --port 9000 --interval 15 --protocol http --timeout 10 --threshold 10
 
 # adjust http settings
-LB_GW_BACKEND_SETTINGS_NAME=$(az network application-gateway http-settings list -g $RESOURCE_GROUP --gateway-name $LB_NAME --query '[0].name' --output tsv)
+APP_GW_BACKEND_SETTINGS_NAME=$(az network application-gateway http-settings list -g $RESOURCE_GROUP --gateway-name $APP_GW_NAME --query '[0].name' --output tsv)
 
-az network application-gateway http-settings update -g $RESOURCE_GROUP --gateway-name $LB_NAME -n $LB_GW_BACKEND_SETTINGS_NAME --port 9000 --protocol http --enable-probe true --probe $PROBE_NAME
+az network application-gateway http-settings update -g $RESOURCE_GROUP --gateway-name $APP_GW_NAME -n $APP_GW_BACKEND_SETTINGS_NAME --port 9000 --protocol http --enable-probe true --probe $PROBE_NAME
 
 
 # show public ip
-LB_PUB_IP=$(az network public-ip show \
+APP_GW_IP=$(az network public-ip show \
   --resource-group $RESOURCE_GROUP \
-  --name $LB_IP_NAME \
+  --name $APP_GW_IP_NAME \
   --query [ipAddress] --output tsv)
 
-curl --url "http://${LB_PUB_IP}/api/v1/message"
+curl --url "http://${APP_GW_IP}/api/v1/message"
 # {"data":"Hello World From ACI","statusCode":200}
 
 
@@ -176,3 +175,5 @@ az group delete --name $RESOURCE_GROUP --yes
 > https://learn.microsoft.com/en-us/azure/container-instances/container-instances-vnet
 
 > https://learn.microsoft.com/en-us/azure/container-instances/container-instances-application-gateway
+
+> https://learn.microsoft.com/en-us/azure/container-instances/container-instances-log-analytics
