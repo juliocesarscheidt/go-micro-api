@@ -211,4 +211,11 @@ ALB_DNS=$(aws elbv2 describe-load-balancers --region $REGION --name $ALB_NAME --
 
 curl --url "http://${ALB_DNS}/api/v1/message"
 # {"data":"Hello World From ECS","statusCode":200}
+
+
+# query to get some logs on cloudwatch
+fields host, ip, message as msg, method, path, severity, timestamp
+| sort @timestamp desc
+| filter path ~= '/api/v1/message'
+| limit 10
 ```
