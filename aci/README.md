@@ -4,42 +4,152 @@
 
 > https://learn.microsoft.com/en-us/azure/container-instances/container-instances-quickstart
 
+> https://learn.microsoft.com/en-us/azure/container-instances/container-instances-vnet
+
+> https://learn.microsoft.com/en-us/azure/container-instances/container-instances-application-gateway
+
 ## Preparing resources
 
 ```bash
+LOCATION="eastus"
 RESOURCE_GROUP="go-micro-api-rg"
-LOG_ANALYTICS_WORKSPACE_NAME="go-micro-api-log-analytics"
-CONTAINER_NAME="go-micro-api"
+API_NAME="go-micro-api"
+# log analytics
+LOG_ANALYTICS_WORKSPACE_NAME="$API_NAME-log-analytics"
+# network setting
+VNET_NAME="$API_NAME-vnet"
+SUBNETS_PREFIX_NAME="$API_NAME-subnet"
+LB_NAME="$API_NAME-app-gw"
+LB_IP_NAME="$API_NAME-pub-ip"
+
 
 # create resource group
-az group create --name $RESOURCE_GROUP --location eastus
+az group create --name $RESOURCE_GROUP --location $LOCATION
+
+
+# network config
+LB_SUBNET_NAME="${SUBNETS_PREFIX_NAME}-a"
+az network vnet create \
+  --name $VNET_NAME \
+  --resource-group $RESOURCE_GROUP \
+  --location $LOCATION \
+  --address-prefix 10.100.0.0/20 \
+  --subnet-name "$LB_SUBNET_NAME" \
+  --subnet-prefix 10.100.0.0/24
+
+CONTAINER_SUBNET_NAME="${SUBNETS_PREFIX_NAME}-b"
+CONTAINER_SUBNET_ID=$(az network vnet subnet create \
+  --name "$CONTAINER_SUBNET_NAME" \
+  --resource-group $RESOURCE_GROUP \
+  --vnet-name $VNET_NAME \
+  --address-prefix 10.100.1.0/24 \
+  --query "id" --out tsv)
+
+# add delegation for container subnet to Microsoft.ContainerInstance.containerGroups
+az network vnet subnet list-available-delegations --resource-group $RESOURCE_GROUP | grep Microsoft.ContainerInstance
+
+az network vnet subnet update -g $RESOURCE_GROUP -n $CONTAINER_SUBNET_NAME --vnet-name $VNET_NAME --delegations 'Microsoft.ContainerInstance.containerGroups'
+
+
+# replace config on yaml file
+sed -i "s/{{SUBNET_NAME}}/${CONTAINER_SUBNET_NAME}/" container-group.yaml
+
+CONTAINER_SUBNET_ID=$(echo "$CONTAINER_SUBNET_ID" | sed -r 's/\//\\\//gm')
+sed -i "s/{{SUBNET_ID}}/${CONTAINER_SUBNET_ID}/" container-group.yaml
+
 
 # create log analytics workspace
-az monitor log-analytics workspace create --resource-group $RESOURCE_GROUP --workspace-name $LOG_ANALYTICS_WORKSPACE_NAME --location eastus
+az monitor log-analytics workspace create --resource-group $RESOURCE_GROUP --workspace-name $LOG_ANALYTICS_WORKSPACE_NAME --location $LOCATION
 
 WORKSPACE_ID=$(az monitor log-analytics workspace show --resource-group $RESOURCE_GROUP --workspace-name $LOG_ANALYTICS_WORKSPACE_NAME --query "customerId" --out tsv)
-
+# replace config on yaml file
 sed -i "s/{{WORKSPACE_ID}}/${WORKSPACE_ID}/" container-group.yaml
 
 WORKSPACE_KEY=$(az monitor log-analytics workspace get-shared-keys --resource-group $RESOURCE_GROUP --workspace-name $LOG_ANALYTICS_WORKSPACE_NAME --query "primarySharedKey" --out tsv)
 WORKSPACE_KEY=$(echo "$WORKSPACE_KEY" | sed -r 's/\//\\\//gm')
-
+# replace config on yaml file
 sed -i "s/{{WORKSPACE_KEY}}/${WORKSPACE_KEY}/" container-group.yaml
+
+
+REGISTRY_USERNAME="gomicroapi"
+REGISTRY_URL="$REGISTRY_USERNAME.azurecr.io"
+
+# create acr repository
+az acr create --resource-group $RESOURCE_GROUP --name $REGISTRY_USERNAME --sku Basic
+# enable admin password
+az acr update --admin-enabled true --resource-group $RESOURCE_GROUP --name $REGISTRY_USERNAME
+# retrieve password
+REGISTRY_PASSWORD="$(az acr credential show --resource-group $RESOURCE_GROUP --name $REGISTRY_USERNAME --query passwords[0].value | sed 's/^"//; s/"$//')"
+# login
+echo "$REGISTRY_PASSWORD" | docker login "$REGISTRY_URL" --username "$REGISTRY_USERNAME" --password-stdin
+
+# get image from docker and push to acr
+docker image pull docker.io/juliocesarmidia/go-micro-api:v1.0.0
+docker image tag docker.io/juliocesarmidia/go-micro-api:v1.0.0 "$REGISTRY_URL/go-micro-api:v1.0.0"
+docker image push "$REGISTRY_URL/go-micro-api:v1.0.0"
+
+
+# replace more configs on yaml
+sed -i "s/{{REGISTRY_USERNAME}}/${REGISTRY_USERNAME}/; s/{{REGISTRY_PASSWORD}}/${REGISTRY_PASSWORD}/" container-group.yaml
+
+# replace location
+sed -i "s/{{LOCATION}}/${LOCATION}/" container-group.yaml
 ```
 
-## Creating the container group
+## Creating the load balancer and container group
 
 ```bash
 # create container group
 az container create --resource-group $RESOURCE_GROUP --file container-group.yaml
+# retrieve private container ip
+CONTAINER_IP=$(az container show \
+  --resource-group $RESOURCE_GROUP \
+  --name $API_NAME \
+  --query ipAddress.ip --output tsv)
 
-API_HOSTNAME=$(az container show --resource-group $RESOURCE_GROUP --name $CONTAINER_NAME --query "ipAddress.fqdn" --out tsv)
 
-curl --url "http://${API_HOSTNAME}:9000/api/v1/message"
+# create application gateway
+az network public-ip create \
+  --resource-group $RESOURCE_GROUP \
+  --name $LB_IP_NAME \
+  --allocation-method Static \
+  --sku Standard
+
+az network application-gateway create \
+  --name $LB_NAME \
+  --location $LOCATION \
+  --resource-group $RESOURCE_GROUP \
+  --capacity 1 \
+  --sku Standard_v2 \
+  --http-settings-protocol http \
+  --priority 1000 \
+  --public-ip-address $LB_IP_NAME \
+  --vnet-name $VNET_NAME \
+  --subnet $LB_SUBNET_NAME \
+  --servers "$CONTAINER_IP"
+
+# adjust gateway healthcheck
+PROBE_NAME="healthProbe"
+az network application-gateway probe create -g $RESOURCE_GROUP --gateway-name $LB_NAME -n $PROBE_NAME --protocol http --host '127.0.0.1' --path '/api/v1/health/live' --port 9000 --interval 15 --protocol http --timeout 10 --threshold 10
+
+# adjust http settings
+LB_GW_BACKEND_SETTINGS_NAME=$(az network application-gateway http-settings list -g $RESOURCE_GROUP --gateway-name $LB_NAME --query '[0].name' --output tsv)
+
+az network application-gateway http-settings update -g $RESOURCE_GROUP --gateway-name $LB_NAME -n $LB_GW_BACKEND_SETTINGS_NAME --port 9000 --protocol http --enable-probe 1 --probe $PROBE_NAME
+
+
+# show public ip
+LB_PUB_IP=$(az network public-ip show \
+  --resource-group $RESOURCE_GROUP \
+  --name $LB_IP_NAME \
+  --query [ipAddress] --output tsv)
+
+curl --url "http://${LB_PUB_IP}/api/v1/message"
 # {"data":"Hello World From ACI","statusCode":200}
 
+
 # get logs from container
-az container logs --resource-group $RESOURCE_GROUP --name $CONTAINER_NAME --follow
+az container logs --resource-group $RESOURCE_GROUP --name $API_NAME --follow
 
 # query to get some logs on log analytics
 ContainerInstanceLog_CL
@@ -56,10 +166,7 @@ ContainerInstanceLog_CL
 | order by totimespan(Timestamp) desc
 | take 10
 
+
 # clean up
-az container delete --resource-group $RESOURCE_GROUP --name $CONTAINER_NAME --yes
-
-az monitor log-analytics workspace delete --resource-group $RESOURCE_GROUP --workspace-name $LOG_ANALYTICS_WORKSPACE_NAME --yes
-
 az group delete --name $RESOURCE_GROUP --yes
 ```
