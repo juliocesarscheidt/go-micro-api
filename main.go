@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"os"
 	"os/signal"
@@ -33,7 +34,13 @@ var (
 		},
 		[]string{"status", "method", "path"},
 	)
+	Message string
 )
+
+// ConfigurationDto is the content of request for configuration update
+type ConfigurationDto struct {
+	Message string `json:"message"`
+}
 
 func init() {
 	// logging config
@@ -50,6 +57,9 @@ func init() {
 	// prometheus config
 	prometheus.MustRegister(EndpointCounterMetrics)
 	prometheus.MustRegister(EndpointDurationMetrics)
+	// message variable from environment
+	Message = getFromEnvOrDefaultAsString("MESSAGE", "Hello World")
+	Log.Infof("Using MESSAGE from ENV :: %s", Message)
 }
 
 func putEndpointMetrics(path, method, status string) {
@@ -64,31 +74,6 @@ func putEndpointMetrics(path, method, status string) {
 	}()
 }
 
-func buildJSONResponse(statusCode int, message interface{}) ([]byte, error) {
-	var responseHTTP = make(map[string]interface{})
-	responseHTTP["statusCode"] = statusCode
-	responseHTTP["data"] = message
-	response, _ := json.Marshal(responseHTTP)
-	return []byte(string(response)), nil
-}
-
-func returnHTTPResponse(statusCode int, message interface{}) http.HandlerFunc {
-	return func(writter http.ResponseWriter, req *http.Request) {
-		writter.Header().Set("Content-Type", "application/json")
-		responseJSONBytes, _ := buildJSONResponse(statusCode, message)
-		putEndpointMetrics(req.URL.Path, req.Method, fmt.Sprint(statusCode))
-		ip := strings.Split(req.RemoteAddr, ":")[0]
-		Log.WithFields(logrus.Fields{
-			"host":   req.Host,
-			"ip":     ip,
-			"path":   req.URL.Path,
-			"method": req.Method,
-		}).Infof("")
-		writter.WriteHeader(statusCode)
-		writter.Write(responseJSONBytes)
-	}
-}
-
 func getFromEnvOrDefaultAsString(envParam, defaultValue string) string {
 	value := os.Getenv(envParam)
 	if value == "" {
@@ -97,14 +82,83 @@ func getFromEnvOrDefaultAsString(envParam, defaultValue string) string {
 	return value
 }
 
+func buildJSONResponse(statusCode int, message interface{}) ([]byte, error) {
+	var responseHTTP = make(map[string]interface{})
+	responseHTTP["statusCode"] = statusCode
+	responseHTTP["data"] = message
+	response, _ := json.Marshal(responseHTTP)
+	return []byte(string(response)), nil
+}
+
+func buildHTTPResponse(statusCode int, message interface{}, path, host, method, remoteAddr string) []byte {
+	responseJSONBytes, _ := buildJSONResponse(statusCode, message)
+	putEndpointMetrics(path, method, fmt.Sprint(statusCode))
+	ip := strings.Split(remoteAddr, ":")[0]
+	Log.WithFields(logrus.Fields{
+		"host":   host,
+		"ip":     ip,
+		"path":   path,
+		"method": method,
+	}).Infof(fmt.Sprint(message))
+	return responseJSONBytes
+}
+
+func handleMessageRequestGet(statusCode int) http.HandlerFunc {
+	return func(writter http.ResponseWriter, req *http.Request) {
+		writter.Header().Set("Content-Type", "application/json")
+		if req.Method != "GET" {
+			writter.WriteHeader(http.StatusMethodNotAllowed)
+			return
+		}
+		responseJSONBytes := buildHTTPResponse(statusCode, Message, req.URL.Path, req.Host, req.Method, req.RemoteAddr)
+		writter.WriteHeader(statusCode)
+		writter.Write(responseJSONBytes)
+	}
+}
+
+func handleDefaultRequestGet(statusCode int, message interface{}) http.HandlerFunc {
+	return func(writter http.ResponseWriter, req *http.Request) {
+		writter.Header().Set("Content-Type", "application/json")
+		if req.Method != "GET" {
+			writter.WriteHeader(http.StatusMethodNotAllowed)
+			return
+		}
+		responseJSONBytes := buildHTTPResponse(statusCode, message, req.URL.Path, req.Host, req.Method, req.RemoteAddr)
+		writter.WriteHeader(statusCode)
+		writter.Write(responseJSONBytes)
+	}
+}
+
+func handleConfigurationRequestPut(statusCode int, message interface{}) http.HandlerFunc {
+	return func(writter http.ResponseWriter, req *http.Request) {
+		writter.Header().Set("Content-Type", "application/json")
+		if req.Method != "PUT" {
+			writter.WriteHeader(http.StatusMethodNotAllowed)
+			return
+		}
+		body, _ := ioutil.ReadAll(req.Body)
+		payload := ConfigurationDto{}
+		err := json.Unmarshal([]byte(string(body)), &payload)
+		if err != nil {
+			Log.Errorf("Error :: %v", err)
+			writter.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		Message = payload.Message
+		Log.Infof("Using MESSAGE from CONFIGURATION :: %s", Message)
+		responseJSONBytes := buildHTTPResponse(statusCode, message, req.URL.Path, req.Host, req.Method, req.RemoteAddr)
+		writter.WriteHeader(statusCode)
+		writter.Write(responseJSONBytes)
+	}
+}
+
 func main() {
-	message := getFromEnvOrDefaultAsString("MESSAGE", "Hello World")
-	Log.Infof("Using var MESSAGE from env :: %s", message)
 	// add routes
-	http.HandleFunc("/api/v1/message", returnHTTPResponse(http.StatusOK, message))
-	http.HandleFunc("/api/v1/ping", returnHTTPResponse(http.StatusOK, "Pong"))
-	http.HandleFunc("/api/v1/health/live", returnHTTPResponse(http.StatusOK, "Alive"))
-	http.HandleFunc("/api/v1/health/ready", returnHTTPResponse(http.StatusOK, "Ready"))
+	http.HandleFunc("/api/v1/message", handleMessageRequestGet(http.StatusOK))
+	http.HandleFunc("/api/v1/configuration", handleConfigurationRequestPut(http.StatusAccepted, "Accepted"))
+	http.HandleFunc("/api/v1/ping", handleDefaultRequestGet(http.StatusOK, "Pong"))
+	http.HandleFunc("/api/v1/health/live", handleDefaultRequestGet(http.StatusOK, "Alive"))
+	http.HandleFunc("/api/v1/health/ready", handleDefaultRequestGet(http.StatusOK, "Ready"))
 	http.Handle("/metrics", promhttp.Handler())
 	// start listening inside other goroutine
 	go func() {

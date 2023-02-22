@@ -43,6 +43,7 @@ docker container inspect go-micro-api
 docker container logs -f --tail 100 go-micro-api
 
 curl --url 'http://localhost:9000/api/v1/message'
+curl -X PUT --data '{"message": "Hello World v2"}' --url 'http://localhost:9000/api/v1/configuration'
 curl --url 'http://localhost:9000/api/v1/ping'
 curl --url 'http://localhost:9000/api/v1/health/live'
 curl --url 'http://localhost:9000/api/v1/health/ready'
@@ -62,6 +63,7 @@ INGRESS_IP=$(kubectl get service -n ingress-nginx \
 echo "${INGRESS_IP} api.golang.local" >> /etc/hosts
 
 curl --url 'http://api.golang.local/api/v1/message'
+curl -X PUT --data '{"message": "Hello World v2"}' --url 'http://api.golang.local/api/v1/message'
 curl --url 'http://api.golang.local/api/v1/ping'
 curl --url 'http://api.golang.local/api/v1/health/live'
 curl --url 'http://api.golang.local/api/v1/health/ready'

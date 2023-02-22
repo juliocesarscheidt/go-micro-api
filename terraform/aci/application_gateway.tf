@@ -1,79 +1,75 @@
-resource "azurerm_public_ip" "pub_ip_app_gw" {
-  name                = "${var.api_name}-pub-ip"
-  resource_group_name = data.azurerm_resource_group.resource_group.name
-  location            = data.azurerm_resource_group.resource_group.location
-  sku                 = "Standard"
-  allocation_method   = "Static"
+locals {
+  gateway_ip_configuration       = "appGatewayIpConfig"
+  backend_address_pool_name      = "appGatewayBackendPool"
+  frontend_port_name             = "appGatewayFrontendPort"
+  frontend_ip_configuration_name = "appGatewayFrontendIP"
+  http_setting_name              = "appGatewayHttpSettings"
+  listener_name                  = "appGatewayListener"
+  request_routing_rule_name      = "appGatewayRoutingRule"
 }
 
-output "app_gw_public_ip" {
-  value = azurerm_public_ip.pub_ip_app_gw.ip_address
-}
-
-resource "azurerm_lb" "app_gw" {
+resource "azurerm_application_gateway" "app_gw" {
   name                = "${var.api_name}-app-gw"
-  location            = data.azurerm_resource_group.resource_group.location
   resource_group_name = data.azurerm_resource_group.resource_group.name
-  sku                 = "Standard"
+  location            = data.azurerm_resource_group.resource_group.location
+  sku {
+    name     = "Standard_v2"
+    tier     = "Standard_v2"
+    capacity = 2
+  }
+  gateway_ip_configuration {
+    name      = local.gateway_ip_configuration
+    subnet_id = azurerm_subnet.subnet_app_gw.id
+  }
+  frontend_port {
+    name = local.frontend_port_name
+    port = 80
+  }
   frontend_ip_configuration {
-    name                 = "appGatewayFrontendIP"
+    name                 = local.frontend_ip_configuration_name
     public_ip_address_id = azurerm_public_ip.pub_ip_app_gw.id
   }
+  backend_address_pool {
+    name         = local.backend_address_pool_name
+    ip_addresses = [azurerm_container_group.container_api.ip_address]
+  }
+  backend_http_settings {
+    name                  = local.http_setting_name
+    cookie_based_affinity = "Disabled"
+    path                  = "/"
+    port                  = var.api_port
+    protocol              = "Http"
+    request_timeout       = 10
+    probe_name            = "healthProbe"
+  }
+  http_listener {
+    name                           = local.listener_name
+    frontend_ip_configuration_name = local.frontend_ip_configuration_name
+    frontend_port_name             = local.frontend_port_name
+    protocol                       = "Http"
+  }
+  probe {
+    name                                      = "healthProbe"
+    protocol                                  = "Http"
+    path                                      = var.api_health_path
+    interval                                  = 15
+    timeout                                   = 10
+    unhealthy_threshold                       = 5
+    port                                      = var.api_port
+    host                                      = "127.0.0.1"
+    pick_host_name_from_backend_http_settings = false
+  }
+  request_routing_rule {
+    name                       = local.request_routing_rule_name
+    rule_type                  = "Basic"
+    http_listener_name         = local.listener_name
+    backend_address_pool_name  = local.backend_address_pool_name
+    backend_http_settings_name = local.http_setting_name
+    priority                   = 1000
+  }
   depends_on = [
+    azurerm_subnet.subnet_app_gw,
     azurerm_public_ip.pub_ip_app_gw,
-  ]
-}
-
-# backend pool
-resource "azurerm_lb_backend_address_pool" "app_gw_backend_pool" {
-  loadbalancer_id = azurerm_lb.app_gw.id
-  name            = "appGatewayBackendPool"
-  depends_on = [
-    azurerm_lb.app_gw,
-  ]
-}
-
-resource "azurerm_lb_backend_address_pool_address" "app_gw_backend_pool_address" {
-  name                    = "appGatewayBackendPoolAddress"
-  backend_address_pool_id = azurerm_lb_backend_address_pool.app_gw_backend_pool.id
-  virtual_network_id      = azurerm_virtual_network.vnet.id
-  ip_address              = azurerm_container_group.container_api.ip_address
-  depends_on = [
-    azurerm_lb_backend_address_pool.app_gw_backend_pool,
-    azurerm_virtual_network.vnet,
     azurerm_container_group.container_api,
   ]
 }
-
-# probes
-resource "azurerm_lb_probe" "app_gw_health_probe" {
-  name                = "healthProbe"
-  loadbalancer_id     = azurerm_lb.app_gw.id
-  protocol            = "Http"
-  port                = var.api_port
-  request_path        = var.api_health_path
-  interval_in_seconds = "15"
-  number_of_probes    = "10" # The number of failed probe attempts
-  depends_on = [
-    azurerm_lb.app_gw,
-  ]
-}
-
-# Load balancing rules
-resource "azurerm_lb_rule" "app_gw_rule_1" {
-  name                           = "rule1"
-  loadbalancer_id                = azurerm_lb.app_gw.id
-  protocol                       = "Tcp"
-  frontend_port                  = 80
-  backend_port                   = var.api_port
-  frontend_ip_configuration_name = "HttpServerFrontendPool"
-  backend_address_pool_ids = [
-    azurerm_lb_backend_address_pool.app_gw_backend_pool.id,
-  ]
-  probe_id = azurerm_lb_probe.app_gw_health_probe.id
-  depends_on = [
-    azurerm_lb_probe.app_gw_health_probe,
-    azurerm_lb_backend_address_pool.app_gw_backend_pool,
-  ]
-}
-

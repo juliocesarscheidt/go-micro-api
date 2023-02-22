@@ -37,12 +37,12 @@ resource "azurerm_container_group" "container_api" {
       }
       initial_delay_seconds = 10
       period_seconds        = 15
-      failure_threshold     = 10
-      success_threshold     = 1
       timeout_seconds       = 10
+      failure_threshold     = 5
+      success_threshold     = 1
     }
     environment_variables = {
-      MESSAGE = var.message
+      MESSAGE = var.api_message
     }
     ports {
       port     = var.api_port

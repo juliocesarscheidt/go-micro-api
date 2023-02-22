@@ -113,7 +113,7 @@ az network application-gateway create \
   --name $APP_GW_NAME \
   --location $LOCATION \
   --resource-group $RESOURCE_GROUP \
-  --capacity 1 \
+  --capacity 2 \
   --sku Standard_v2 \
   --http-settings-protocol http \
   --priority 1000 \
@@ -124,7 +124,7 @@ az network application-gateway create \
 
 # adjust gateway healthcheck
 PROBE_NAME="healthProbe"
-az network application-gateway probe create -g $RESOURCE_GROUP --gateway-name $APP_GW_NAME -n $PROBE_NAME --protocol http --host '127.0.0.1' --path '/api/v1/health/live' --port 9000 --interval 15 --protocol http --timeout 10 --threshold 10
+az network application-gateway probe create -g $RESOURCE_GROUP --gateway-name $APP_GW_NAME -n $PROBE_NAME --protocol http --host '127.0.0.1' --path '/api/v1/health/live' --port 9000 --interval 15 --protocol http --timeout 10 --threshold 5
 
 # adjust http settings
 APP_GW_BACKEND_SETTINGS_NAME=$(az network application-gateway http-settings list -g $RESOURCE_GROUP --gateway-name $APP_GW_NAME --query '[0].name' --output tsv)

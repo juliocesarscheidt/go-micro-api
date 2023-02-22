@@ -1,5 +1,12 @@
 # Running with Azure Container Instances using Terraform
 
+## Using Makefile
+
+```bash
+make
+```
+![image](./make.PNG)
+
 ## Up and Running
 
 ```bash
