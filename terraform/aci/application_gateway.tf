@@ -16,7 +16,7 @@ resource "azurerm_lb" "app_gw" {
   resource_group_name = data.azurerm_resource_group.resource_group.name
   sku                 = "Standard"
   frontend_ip_configuration {
-    name                 = "HttpServerFrontendPool"
+    name                 = "appGatewayFrontendIP"
     public_ip_address_id = azurerm_public_ip.pub_ip_app_gw.id
   }
   depends_on = [
@@ -27,14 +27,14 @@ resource "azurerm_lb" "app_gw" {
 # backend pool
 resource "azurerm_lb_backend_address_pool" "app_gw_backend_pool" {
   loadbalancer_id = azurerm_lb.app_gw.id
-  name            = "HttpServerBackendPool"
+  name            = "appGatewayBackendPool"
   depends_on = [
     azurerm_lb.app_gw,
   ]
 }
 
-resource "azurerm_lb_backend_address_pool_address" "app_gw_backend_pool_address_1" {
-  name                    = "app_gw_backend_pool_address_1"
+resource "azurerm_lb_backend_address_pool_address" "app_gw_backend_pool_address" {
+  name                    = "appGatewayBackendPoolAddress"
   backend_address_pool_id = azurerm_lb_backend_address_pool.app_gw_backend_pool.id
   virtual_network_id      = azurerm_virtual_network.vnet.id
   ip_address              = azurerm_container_group.container_api.ip_address
@@ -45,10 +45,24 @@ resource "azurerm_lb_backend_address_pool_address" "app_gw_backend_pool_address_
   ]
 }
 
+# probes
+resource "azurerm_lb_probe" "app_gw_health_probe" {
+  name                = "healthProbe"
+  loadbalancer_id     = azurerm_lb.app_gw.id
+  protocol            = "Http"
+  port                = var.api_port
+  request_path        = var.api_health_path
+  interval_in_seconds = "15"
+  number_of_probes    = "10" # The number of failed probe attempts
+  depends_on = [
+    azurerm_lb.app_gw,
+  ]
+}
+
 # Load balancing rules
 resource "azurerm_lb_rule" "app_gw_rule_1" {
+  name                           = "rule1"
   loadbalancer_id                = azurerm_lb.app_gw.id
-  name                           = "HTTPAccessRule"
   protocol                       = "Tcp"
   frontend_port                  = 80
   backend_port                   = var.api_port
@@ -56,23 +70,10 @@ resource "azurerm_lb_rule" "app_gw_rule_1" {
   backend_address_pool_ids = [
     azurerm_lb_backend_address_pool.app_gw_backend_pool.id,
   ]
-  probe_id = azurerm_lb_probe.app_gw_probe_1.id
+  probe_id = azurerm_lb_probe.app_gw_health_probe.id
   depends_on = [
-    azurerm_lb_probe.app_gw_probe_1,
+    azurerm_lb_probe.app_gw_health_probe,
     azurerm_lb_backend_address_pool.app_gw_backend_pool,
   ]
 }
 
-# probes
-resource "azurerm_lb_probe" "app_gw_probe_1" {
-  name                = "healthProbe"
-  loadbalancer_id     = azurerm_lb.app_gw.id
-  protocol            = "Http"
-  port                = var.api_port
-  request_path        = var.api_health_path
-  interval_in_seconds = "15"
-  number_of_probes    = "3"
-  depends_on = [
-    azurerm_lb.app_gw,
-  ]
-}
