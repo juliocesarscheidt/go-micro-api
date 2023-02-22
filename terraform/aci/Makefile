@@ -1,20 +1,17 @@
-# azure config
+# azure variables
 LOCATION?=eastus
 RESOURCE_GROUP?=go-micro-api-rg
-# backend config
+# backend variables
 STORAGE_ACCOUNT_BACKEND?=gomicroapistorageacc
 STORAGE_ACCOUNT_BACKEND_LOCATION?=eastus
-# registry oonfig
+# registry variables
 REGISTRY_USERNAME?=gomicroapi
-# image config
+# api variables
 API_NAME?=go-micro-api
 API_VERSION?=v1.0.0
-API_ENV_VAR_MESSAGE?=Hello World From ACI with Terraform
-# docker config
-DOCKER_BUILDKIT=1
-BUILDKIT_PROGRESS=plain
+API_MESSAGE?=Hello World From ACI with Terraform
 
-all: push-image init apply
+all: push-image init plan apply
 
 create-resource-group:
 	-@az group create --name $(RESOURCE_GROUP) --location $(LOCATION) 2> /dev/null
@@ -24,23 +21,22 @@ create-repo:
 	-@az acr update --admin-enabled true --resource-group $(RESOURCE_GROUP) --name $(REGISTRY_USERNAME)
 
 docker-login:
-	export REGISTRY_PASSWORD="$$(az acr credential show --resource-group $(RESOURCE_GROUP) --name $(REGISTRY_USERNAME) --query passwords[0].value | sed 's/^"//; s/"$$//')"; \
+	export REGISTRY_PASSWORD="$$(az acr credential show --resource-group $(RESOURCE_GROUP) \
+		--name $(REGISTRY_USERNAME) --query passwords[0].value | sed 's/^"//; s/"$$//')"; \
 	echo "$${REGISTRY_PASSWORD}" | docker login "$(REGISTRY_USERNAME).azurecr.io" \
 			--username "$(REGISTRY_USERNAME)" --password-stdin
 
 push-image: create-resource-group create-repo docker-login
-	docker image pull "docker.io/juliocesarmidia/go-micro-api:v1.0.0"
-	docker image tag "docker.io/juliocesarmidia/go-micro-api:v1.0.0" "$(REGISTRY_USERNAME).azurecr.io/$(API_NAME):$(API_VERSION)"
+	docker image pull "docker.io/juliocesarmidia/$(API_NAME):v1.0.0"
+	docker image tag "docker.io/juliocesarmidia/$(API_NAME):v1.0.0" "$(REGISTRY_USERNAME).azurecr.io/$(API_NAME):$(API_VERSION)"
 	docker image push "$(REGISTRY_USERNAME).azurecr.io/$(API_NAME):$(API_VERSION)"
 
 create-backend-storage-account:
 	-@az storage account show --resource-group $(RESOURCE_GROUP) --name $(STORAGE_ACCOUNT_BACKEND) || \
 		az storage account create --resource-group $(RESOURCE_GROUP) --name $(STORAGE_ACCOUNT_BACKEND) \
 		--location $(STORAGE_ACCOUNT_BACKEND_LOCATION) --sku Standard_LRS
-	make create-backend-storage-account-container
-
-create-backend-storage-account-container:
-	-@az storage container create --resource-group $(RESOURCE_GROUP) --account-name $(STORAGE_ACCOUNT_BACKEND) --name $(API_NAME) --public-access container
+	-@az storage container create --resource-group $(RESOURCE_GROUP) \
+		--account-name $(STORAGE_ACCOUNT_BACKEND) --name $(API_NAME) --public-access container
 
 init: create-backend-storage-account
 	terraform init -upgrade=true \
@@ -75,7 +71,7 @@ plan: tf-validate tf-lint tf-fmt
 		-var registry_password="$${REGISTRY_PASSWORD}" \
 		-var api_name="$(API_NAME)" \
 		-var api_version="$(API_VERSION)" \
-		-var api_env_var_message="$(API_ENV_VAR_MESSAGE)" \
+		-var api_message="$(API_MESSAGE)" \
 		-input=false
 
 apply:
@@ -93,7 +89,7 @@ destroy:
 		-var registry_password="$${REGISTRY_PASSWORD}" \
 		-var api_name="$(API_NAME)" \
 		-var api_version="$(API_VERSION)" \
-		-var api_env_var_message="$(API_ENV_VAR_MESSAGE)" \
+		-var api_message="$(API_MESSAGE)" \
 		-auto-approve
 	make destroy-resources
 

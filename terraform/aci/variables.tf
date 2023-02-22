@@ -22,7 +22,7 @@ variable "api_health_path" {
   description = "API health path"
 }
 
-variable "api_env_var_message" {
+variable "api_message" {
   type        = string
   default     = "Hello World From ACI with Terraform"
   description = "API environment variable MESSAGE"

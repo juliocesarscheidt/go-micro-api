@@ -42,7 +42,7 @@ resource "azurerm_container_group" "container_api" {
       timeout_seconds       = 10
     }
     environment_variables = {
-      MESSAGE = var.api_env_var_message
+      MESSAGE = var.message
     }
     ports {
       port     = var.api_port
