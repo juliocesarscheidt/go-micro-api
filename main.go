@@ -144,6 +144,10 @@ func handleConfigurationRequestPut(statusCode int, message interface{}) http.Han
 			writter.WriteHeader(http.StatusInternalServerError)
 			return
 		}
+		if payload.Message == "" {
+			writter.WriteHeader(http.StatusBadRequest)
+			return
+		}
 		Message = payload.Message
 		Log.Infof("Using MESSAGE from CONFIGURATION :: %s", Message)
 		responseJSONBytes := buildHTTPResponse(statusCode, message, req.URL.Path, req.Host, req.Method, req.RemoteAddr)
