@@ -135,7 +135,7 @@ az network application-gateway probe create -g $RESOURCE_GROUP --gateway-name $L
 # adjust http settings
 LB_GW_BACKEND_SETTINGS_NAME=$(az network application-gateway http-settings list -g $RESOURCE_GROUP --gateway-name $LB_NAME --query '[0].name' --output tsv)
 
-az network application-gateway http-settings update -g $RESOURCE_GROUP --gateway-name $LB_NAME -n $LB_GW_BACKEND_SETTINGS_NAME --port 9000 --protocol http --enable-probe 1 --probe $PROBE_NAME
+az network application-gateway http-settings update -g $RESOURCE_GROUP --gateway-name $LB_NAME -n $LB_GW_BACKEND_SETTINGS_NAME --port 9000 --protocol http --enable-probe true --probe $PROBE_NAME
 
 
 # show public ip
