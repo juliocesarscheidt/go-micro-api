@@ -48,7 +48,6 @@ CONTAINER_SUBNET_ID=$(az network vnet subnet create \
 # add delegation for container subnet
 az network vnet subnet update -g $RESOURCE_GROUP -n $CONTAINER_SUBNET_NAME --vnet-name $VNET_NAME --delegations 'Microsoft.ContainerInstance.containerGroups'
 
-
 # replace config on yaml file
 sed -i "s/{{SUBNET_NAME}}/${CONTAINER_SUBNET_NAME}/" container-group.yaml
 
@@ -79,8 +78,8 @@ REGISTRY_PASSWORD="$(az acr credential show --resource-group $RESOURCE_GROUP --n
 echo "$REGISTRY_PASSWORD" | docker login "$REGISTRY_URL" --username "$REGISTRY_USERNAME" --password-stdin
 
 # get image from docker and push to acr
-docker image pull docker.io/juliocesarmidia/go-micro-api:v1.0.0
-docker image tag docker.io/juliocesarmidia/go-micro-api:v1.0.0 "$REGISTRY_URL/go-micro-api:v1.0.0"
+docker image pull "docker.io/juliocesarmidia/go-micro-api:v1.0.0"
+docker image tag "docker.io/juliocesarmidia/go-micro-api:v1.0.0" "$REGISTRY_URL/go-micro-api:v1.0.0"
 docker image push "$REGISTRY_URL/go-micro-api:v1.0.0"
 
 
@@ -114,7 +113,7 @@ az network application-gateway create \
   --name $APP_GW_NAME \
   --location $LOCATION \
   --resource-group $RESOURCE_GROUP \
-  --capacity 1 \
+  --capacity 2 \
   --sku Standard_v2 \
   --http-settings-protocol http \
   --priority 1000 \
@@ -125,7 +124,7 @@ az network application-gateway create \
 
 # adjust gateway healthcheck
 PROBE_NAME="healthProbe"
-az network application-gateway probe create -g $RESOURCE_GROUP --gateway-name $APP_GW_NAME -n $PROBE_NAME --protocol http --host '127.0.0.1' --path '/api/v1/health/live' --port 9000 --interval 15 --protocol http --timeout 10 --threshold 10
+az network application-gateway probe create -g $RESOURCE_GROUP --gateway-name $APP_GW_NAME -n $PROBE_NAME --protocol http --host '127.0.0.1' --path '/api/v1/health/live' --port 9000 --interval 15 --protocol http --timeout 10 --threshold 5
 
 # adjust http settings
 APP_GW_BACKEND_SETTINGS_NAME=$(az network application-gateway http-settings list -g $RESOURCE_GROUP --gateway-name $APP_GW_NAME --query '[0].name' --output tsv)
