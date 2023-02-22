@@ -49,7 +49,7 @@ properties:
   imageRegistryCredentials:
   - server: {{REGISTRY_USERNAME}}.azurecr.io
     username: {{REGISTRY_USERNAME}}
-    password: {{REGISTRY_USERNAME}}
+    password: {{REGISTRY_PASSWORD}}
   diagnostics:
     logAnalytics:
       workspaceId: {{WORKSPACE_ID}}

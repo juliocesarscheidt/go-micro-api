@@ -48,7 +48,6 @@ CONTAINER_SUBNET_ID=$(az network vnet subnet create \
 # add delegation for container subnet
 az network vnet subnet update -g $RESOURCE_GROUP -n $CONTAINER_SUBNET_NAME --vnet-name $VNET_NAME --delegations 'Microsoft.ContainerInstance.containerGroups'
 
-
 # replace config on yaml file
 sed -i "s/{{SUBNET_NAME}}/${CONTAINER_SUBNET_NAME}/" container-group.yaml
 
@@ -79,8 +78,8 @@ REGISTRY_PASSWORD="$(az acr credential show --resource-group $RESOURCE_GROUP --n
 echo "$REGISTRY_PASSWORD" | docker login "$REGISTRY_URL" --username "$REGISTRY_USERNAME" --password-stdin
 
 # get image from docker and push to acr
-docker image pull docker.io/juliocesarmidia/go-micro-api:v1.0.0
-docker image tag docker.io/juliocesarmidia/go-micro-api:v1.0.0 "$REGISTRY_URL/go-micro-api:v1.0.0"
+docker image pull "docker.io/juliocesarmidia/go-micro-api:v1.0.0"
+docker image tag "docker.io/juliocesarmidia/go-micro-api:v1.0.0" "$REGISTRY_URL/go-micro-api:v1.0.0"
 docker image push "$REGISTRY_URL/go-micro-api:v1.0.0"
 
 
