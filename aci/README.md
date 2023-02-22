@@ -45,9 +45,7 @@ CONTAINER_SUBNET_ID=$(az network vnet subnet create \
   --address-prefix 10.100.1.0/24 \
   --query "id" --out tsv)
 
-# add delegation for container subnet to Microsoft.ContainerInstance.containerGroups
-az network vnet subnet list-available-delegations --resource-group $RESOURCE_GROUP | grep Microsoft.ContainerInstance
-
+# add delegation for container subnet
 az network vnet subnet update -g $RESOURCE_GROUP -n $CONTAINER_SUBNET_NAME --vnet-name $VNET_NAME --delegations 'Microsoft.ContainerInstance.containerGroups'
 
 
