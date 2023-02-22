@@ -95,3 +95,9 @@ destroy:
 		-var api_version="$(API_VERSION)" \
 		-var api_env_var_message="$(API_ENV_VAR_MESSAGE)" \
 		-auto-approve
+	make destroy-resources
+
+destroy-resources:
+	-@az acr delete --resource-group $(RESOURCE_GROUP) --name $(REGISTRY_USERNAME) --yes
+	-@az storage account delete --resource-group $(RESOURCE_GROUP) --name $(STORAGE_ACCOUNT_BACKEND) --yes
+	-@az group delete --name $(RESOURCE_GROUP) --yes
