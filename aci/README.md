@@ -1,12 +1,8 @@
 # Running with Azure Container Instances
 
-> https://learn.microsoft.com/pt-BR/azure/container-instances/container-instances-multi-container-yaml
+## Architecture
 
-> https://learn.microsoft.com/en-us/azure/container-instances/container-instances-quickstart
-
-> https://learn.microsoft.com/en-us/azure/container-instances/container-instances-vnet
-
-> https://learn.microsoft.com/en-us/azure/container-instances/container-instances-application-gateway
+![architecture](./go-micro-api-aci.drawio.png)
 
 ## Preparing resources
 
@@ -170,3 +166,13 @@ ContainerInstanceLog_CL
 # clean up
 az group delete --name $RESOURCE_GROUP --yes
 ```
+
+## References
+
+> https://learn.microsoft.com/pt-BR/azure/container-instances/container-instances-multi-container-yaml
+
+> https://learn.microsoft.com/en-us/azure/container-instances/container-instances-quickstart
+
+> https://learn.microsoft.com/en-us/azure/container-instances/container-instances-vnet
+
+> https://learn.microsoft.com/en-us/azure/container-instances/container-instances-application-gateway
