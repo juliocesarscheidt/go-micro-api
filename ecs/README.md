@@ -1,11 +1,8 @@
 # Running with Elastic Container Service
 
-> https://docs.aws.amazon.com/AmazonECS/latest/developerguide/ECS_AWSCLI_Fargate.html
-> https://docs.aws.amazon.com/cli/latest/userguide/cli-services-ec2-sg.html
-> https://docs.aws.amazon.com/cli/latest/reference/ecs/create-service.html
-> https://docs.aws.amazon.com/cli/latest/reference/elbv2/create-load-balancer.html
-> https://docs.aws.amazon.com/cli/latest/reference/ecs/register-task-definition.html
-> https://docs.aws.amazon.com/pt_br/elasticloadbalancing/latest/application/tutorial-application-load-balancer-cli.html
+## Architecture
+
+![architecture](./go-micro-api-ecs.drawio.png)
 
 ## Preparing resources
 
@@ -219,3 +216,12 @@ fields host, ip, message as msg, method, path, severity, timestamp
 | filter path ~= '/api/v1/message'
 | limit 10
 ```
+
+## References
+
+> https://docs.aws.amazon.com/AmazonECS/latest/developerguide/ECS_AWSCLI_Fargate.html
+> https://docs.aws.amazon.com/cli/latest/userguide/cli-services-ec2-sg.html
+> https://docs.aws.amazon.com/cli/latest/reference/ecs/create-service.html
+> https://docs.aws.amazon.com/cli/latest/reference/elbv2/create-load-balancer.html
+> https://docs.aws.amazon.com/cli/latest/reference/ecs/register-task-definition.html
+> https://docs.aws.amazon.com/pt_br/elasticloadbalancing/latest/application/tutorial-application-load-balancer-cli.html
