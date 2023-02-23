@@ -32,7 +32,7 @@ jobs:
     - name: Build image
       run: |
         docker image build \
-          --tag docker.io/juliocesarmidia/go-micro-api:${{ github.event.number }} .
+          --tag docker.io/juliocesarmidia/go-micro-api:${{ github.event.number }} ./src
     - name: Run Trivy vulnerability scanner
       uses: aquasecurity/trivy-action@master
       with:
@@ -72,7 +72,7 @@ jobs:
       uses: docker/build-push-action@v4
       with:
         push: true
-        context: ./
+        context: ./src
         tags: |
           docker.io/juliocesarmidia/go-micro-api:${{ steps.setShortSha.outputs.SHA_SHORT }}
           docker.io/juliocesarmidia/go-micro-api:v1.0.0

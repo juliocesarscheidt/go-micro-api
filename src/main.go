@@ -19,10 +19,10 @@ import (
 )
 
 var (
-	Log                    = logrus.New()
+	Logger                 = logrus.New()
 	EndpointCounterMetrics = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
-			Subsystem: "api",
+			Subsystem: "gomicroapi",
 			Name:      "http_request_count",
 			Help:      "The total number of requests made to some endpoint",
 		},
@@ -30,7 +30,7 @@ var (
 	)
 	EndpointDurationMetrics = prometheus.NewHistogramVec(
 		prometheus.HistogramOpts{
-			Subsystem: "api",
+			Subsystem: "gomicroapi",
 			Name:      "http_request_duration_seconds",
 			Help:      "Latency of some endpoint requests in seconds",
 		},
@@ -46,7 +46,7 @@ type ConfigurationDto struct {
 
 func init() {
 	// logging config
-	Log.Formatter = &logrus.JSONFormatter{
+	Logger.Formatter = &logrus.JSONFormatter{
 		FieldMap: logrus.FieldMap{
 			logrus.FieldKeyTime:  "timestamp",
 			logrus.FieldKeyLevel: "severity",
@@ -54,17 +54,17 @@ func init() {
 		},
 		TimestampFormat: time.RFC3339Nano,
 	}
-	Log.SetOutput(os.Stdout)
-	Log.SetLevel(logrus.DebugLevel)
+	Logger.SetOutput(os.Stdout)
+	Logger.SetLevel(logrus.DebugLevel)
 	// prometheus config
 	prometheus.MustRegister(EndpointCounterMetrics)
 	prometheus.MustRegister(EndpointDurationMetrics)
 	// message variable from environment
-	Message = getFromEnvOrDefaultAsString("MESSAGE", "Hello World")
-	Log.Infof("Setting MESSAGE from ENV :: %s", Message)
+	Message = GetFromEnvOrDefaultAsString("MESSAGE", "Hello World")
+	Logger.Infof("Setting MESSAGE from ENV :: %s", Message)
 }
 
-func putEndpointMetrics(path, method, status string) {
+func PutRequestMetrics(path, method, status string) {
 	defer func() {
 		EndpointCounterMetrics.WithLabelValues(status, method, path).Inc()
 	}()
@@ -76,7 +76,7 @@ func putEndpointMetrics(path, method, status string) {
 	}()
 }
 
-func getFromEnvOrDefaultAsString(envParam, defaultValue string) string {
+func GetFromEnvOrDefaultAsString(envParam, defaultValue string) string {
 	value := os.Getenv(envParam)
 	if value == "" {
 		value = defaultValue
@@ -84,7 +84,26 @@ func getFromEnvOrDefaultAsString(envParam, defaultValue string) string {
 	return value
 }
 
-func buildJSONResponse(statusCode int, message interface{}) ([]byte, error) {
+func ExtractIpFromRemoteAddr(remoteAddr string) string {
+	addressParts := strings.Split(remoteAddr, ":")
+	if len(addressParts) > 0 {
+		return addressParts[0]
+	}
+	return ""
+}
+
+func LogRequestMetrics(statusCode int, path, host, method, ip string, message interface{}) {
+	Logger.WithFields(logrus.Fields{
+		"status": statusCode,
+		"method": method,
+		"path":   path,
+		"host":   host,
+		"ip":     ip,
+	}).Infof(fmt.Sprint(message))
+	PutRequestMetrics(path, method, fmt.Sprint(statusCode))
+}
+
+func BuildJSONResponse(statusCode int, message interface{}) ([]byte, error) {
 	var responseHTTP = make(map[string]interface{})
 	responseHTTP["statusCode"] = statusCode
 	responseHTTP["data"] = message
@@ -92,50 +111,52 @@ func buildJSONResponse(statusCode int, message interface{}) ([]byte, error) {
 	return []byte(string(response)), nil
 }
 
-func buildHTTPResponse(statusCode int, message interface{}, path, host, method, remoteAddr string) []byte {
-	responseJSONBytes, _ := buildJSONResponse(statusCode, message)
-	putEndpointMetrics(path, method, fmt.Sprint(statusCode))
-	ip := strings.Split(remoteAddr, ":")[0]
-	Log.WithFields(logrus.Fields{
-		"host":   host,
-		"ip":     ip,
-		"path":   path,
-		"method": method,
-	}).Infof(fmt.Sprint(message))
-	return responseJSONBytes
-}
-
-func handleMessageRequestGet(statusCode int) http.HandlerFunc {
+func HandleMessageRequestGet() http.HandlerFunc {
 	return func(writter http.ResponseWriter, req *http.Request) {
 		writter.Header().Set("Content-Type", "application/json")
+		statusCode := http.StatusOK
+		defer func() {
+			LogRequestMetrics(statusCode, req.URL.Path, req.Host, req.Method, ExtractIpFromRemoteAddr(req.RemoteAddr), Message)
+		}()
 		if req.Method != "GET" {
-			writter.WriteHeader(http.StatusMethodNotAllowed)
+			statusCode = http.StatusMethodNotAllowed
+			writter.WriteHeader(statusCode)
 			return
 		}
-		responseJSONBytes := buildHTTPResponse(statusCode, Message, req.URL.Path, req.Host, req.Method, req.RemoteAddr)
+		responseJSONBytes, _ := BuildJSONResponse(statusCode, Message)
 		writter.WriteHeader(statusCode)
 		writter.Write(responseJSONBytes)
 	}
 }
 
-func handleDefaultRequestGet(statusCode int, message interface{}) http.HandlerFunc {
+func HandleDefaultRequestGet(response interface{}) http.HandlerFunc {
 	return func(writter http.ResponseWriter, req *http.Request) {
 		writter.Header().Set("Content-Type", "application/json")
+		statusCode := http.StatusOK
+		defer func() {
+			LogRequestMetrics(statusCode, req.URL.Path, req.Host, req.Method, ExtractIpFromRemoteAddr(req.RemoteAddr), Message)
+		}()
 		if req.Method != "GET" {
-			writter.WriteHeader(http.StatusMethodNotAllowed)
+			statusCode = http.StatusMethodNotAllowed
+			writter.WriteHeader(statusCode)
 			return
 		}
-		responseJSONBytes := buildHTTPResponse(statusCode, message, req.URL.Path, req.Host, req.Method, req.RemoteAddr)
+		responseJSONBytes, _ := BuildJSONResponse(statusCode, response)
 		writter.WriteHeader(statusCode)
 		writter.Write(responseJSONBytes)
 	}
 }
 
-func handleConfigurationRequestPut(statusCode int, message interface{}) http.HandlerFunc {
+func HandleConfigurationRequestPut() http.HandlerFunc {
 	return func(writter http.ResponseWriter, req *http.Request) {
 		writter.Header().Set("Content-Type", "application/json")
+		statusCode := http.StatusAccepted
+		defer func() {
+			LogRequestMetrics(statusCode, req.URL.Path, req.Host, req.Method, ExtractIpFromRemoteAddr(req.RemoteAddr), Message)
+		}()
 		if req.Method != "PUT" {
-			writter.WriteHeader(http.StatusMethodNotAllowed)
+			statusCode = http.StatusMethodNotAllowed
+			writter.WriteHeader(statusCode)
 			return
 		}
 		// max body size accepted is 1024 bytes (1 KB), otherwise it will return bad request
@@ -143,8 +164,9 @@ func handleConfigurationRequestPut(statusCode int, message interface{}) http.Han
 		bodyCopy := new(bytes.Buffer)
 		_, err := io.Copy(bodyCopy, limitedReader)
 		if err != nil {
-			Log.Errorf("Error :: %v", err)
-			writter.WriteHeader(http.StatusInternalServerError)
+			Logger.Errorf("Error :: %v", err)
+			statusCode = http.StatusInternalServerError
+			writter.WriteHeader(statusCode)
 			return
 		}
 		payload := ConfigurationDto{}
@@ -152,12 +174,13 @@ func handleConfigurationRequestPut(statusCode int, message interface{}) http.Han
 		req.Body = ioutil.NopCloser(bytes.NewReader(bodyData))
 		json.Unmarshal(bodyData, &payload)
 		if payload.Message == "" {
-			writter.WriteHeader(http.StatusBadRequest)
+			statusCode = http.StatusBadRequest
+			writter.WriteHeader(statusCode)
 			return
 		}
-		Message = payload.Message
-		Log.Infof("Setting MESSAGE from CONFIGURATION :: %s", Message)
-		responseJSONBytes := buildHTTPResponse(statusCode, message, req.URL.Path, req.Host, req.Method, req.RemoteAddr)
+		Message = strings.Trim(payload.Message, " ")
+		Logger.Infof("Setting MESSAGE from CONFIGURATION :: %s", Message)
+		responseJSONBytes, _ := BuildJSONResponse(statusCode, nil)
 		writter.WriteHeader(statusCode)
 		writter.Write(responseJSONBytes)
 	}
@@ -165,11 +188,11 @@ func handleConfigurationRequestPut(statusCode int, message interface{}) http.Han
 
 func main() {
 	// add routes
-	http.HandleFunc("/api/v1/message", handleMessageRequestGet(http.StatusOK))
-	http.HandleFunc("/api/v1/configuration", handleConfigurationRequestPut(http.StatusAccepted, nil))
-	http.HandleFunc("/api/v1/ping", handleDefaultRequestGet(http.StatusOK, "Pong"))
-	http.HandleFunc("/api/v1/health/live", handleDefaultRequestGet(http.StatusOK, "Alive"))
-	http.HandleFunc("/api/v1/health/ready", handleDefaultRequestGet(http.StatusOK, "Ready"))
+	http.HandleFunc("/api/v1/message", HandleMessageRequestGet())
+	http.HandleFunc("/api/v1/configuration", HandleConfigurationRequestPut())
+	http.HandleFunc("/api/v1/ping", HandleDefaultRequestGet("Pong"))
+	http.HandleFunc("/api/v1/health/live", HandleDefaultRequestGet("Alive"))
+	http.HandleFunc("/api/v1/health/ready", HandleDefaultRequestGet("Ready"))
 	http.Handle("/metrics", promhttp.Handler())
 	// start listening inside other goroutine
 	go func() {

@@ -1,0 +1,58 @@
+version: "3.4"
+
+services:
+  go-micro-api:
+    container_name: go-micro-api
+    image: juliocesarmidia/go-micro-api:v1.0.0
+    hostname: go-micro-api
+    environment:
+      MESSAGE: ${MESSAGE:-Hello World From Docker Compose}
+    build:
+      context: ./src
+    ports:
+      - 9000:9000
+    networks:
+      - subnet_0
+    restart: on-failure
+    cap_drop:
+      - "ALL"
+
+  prometheus:
+    container_name: prometheus
+    image: prom/prometheus:latest
+    hostname: prometheus
+    command: [
+      "--config.file=/prometheus-config/prometheus.yaml",
+      "--web.config.file=/prometheus-config/web.yaml"
+    ]
+    volumes:
+      - ./prometheus/:/prometheus-config
+      - prometheus-data:/prometheus
+    ports:
+      - 9090:9090
+    networks:
+      - subnet_0
+    restart: on-failure
+
+  grafana:
+    container_name: grafana
+    image: grafana/grafana:9.1.6
+    hostname: grafana
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./grafana/provisioning/:/etc/grafana/provisioning/
+    environment:
+      GF_PATHS_PROVISIONING: /etc/grafana/provisioning/
+    ports:
+      - 3000:3000
+    networks:
+      - subnet_0
+    restart: on-failure
+
+networks:
+  subnet_0:
+    driver: bridge
+
+volumes:
+  prometheus-data: {}
+  grafana-data: {}
