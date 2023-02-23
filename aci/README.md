@@ -46,7 +46,7 @@ CONTAINER_SUBNET_ID=$(az network vnet subnet create \
   --query "id" --out tsv)
 
 # add delegation for container subnet
-az network vnet subnet update -g $RESOURCE_GROUP -n $CONTAINER_SUBNET_NAME --vnet-name $VNET_NAME --delegations 'Microsoft.ContainerInstance.containerGroups'
+az network vnet subnet update --resource-group $RESOURCE_GROUP -n $CONTAINER_SUBNET_NAME --vnet-name $VNET_NAME --delegations 'Microsoft.ContainerInstance.containerGroups'
 
 # replace config on yaml file
 sed -i "s/{{SUBNET_NAME}}/${CONTAINER_SUBNET_NAME}/" container-group.yaml
@@ -102,13 +102,14 @@ CONTAINER_IP=$(az container show \
   --query ipAddress.ip --output tsv)
 
 
-# create application gateway
+# create public ip to application gateway
 az network public-ip create \
   --resource-group $RESOURCE_GROUP \
   --name $APP_GW_IP_NAME \
   --allocation-method Static \
   --sku Standard
 
+# create application gateway
 az network application-gateway create \
   --name $APP_GW_NAME \
   --location $LOCATION \
@@ -124,12 +125,24 @@ az network application-gateway create \
 
 # adjust gateway healthcheck
 PROBE_NAME="healthProbe"
-az network application-gateway probe create -g $RESOURCE_GROUP --gateway-name $APP_GW_NAME -n $PROBE_NAME --protocol http --host '127.0.0.1' --path '/api/v1/health/live' --port 9000 --interval 15 --protocol http --timeout 10 --threshold 5
+az network application-gateway probe create \
+  --resource-group $RESOURCE_GROUP \
+  --gateway-name $APP_GW_NAME \
+  -n $PROBE_NAME --protocol http \
+  --host '127.0.0.1' \
+  --path '/api/v1/health/live' \
+  --port 9000 --interval 15 \
+  --timeout 10 --threshold 5
 
 # adjust http settings
-APP_GW_BACKEND_SETTINGS_NAME=$(az network application-gateway http-settings list -g $RESOURCE_GROUP --gateway-name $APP_GW_NAME --query '[0].name' --output tsv)
+APP_GW_BACKEND_SETTINGS_NAME=$(az network application-gateway http-settings list --resource-group $RESOURCE_GROUP --gateway-name $APP_GW_NAME --query '[0].name' --output tsv)
 
-az network application-gateway http-settings update -g $RESOURCE_GROUP --gateway-name $APP_GW_NAME -n $APP_GW_BACKEND_SETTINGS_NAME --port 9000 --protocol http --enable-probe true --probe $PROBE_NAME
+az network application-gateway http-settings update \
+  --resource-group $RESOURCE_GROUP \
+  --gateway-name $APP_GW_NAME \
+  -n $APP_GW_BACKEND_SETTINGS_NAME \
+  --port 9000 --protocol http \
+  --enable-probe true --probe $PROBE_NAME
 
 
 # show public ip
