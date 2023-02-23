@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/signal"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -178,7 +179,11 @@ func HandleConfigurationRequestPut() http.HandlerFunc {
 			writter.WriteHeader(statusCode)
 			return
 		}
+		// creating mutex
+		mutex := &sync.Mutex{}
+		mutex.Lock()
 		Message = strings.Trim(payload.Message, " ")
+		mutex.Unlock()
 		Logger.Infof("Setting MESSAGE from CONFIGURATION :: %s", Message)
 		responseJSONBytes, _ := BuildJSONResponse(statusCode, nil)
 		writter.WriteHeader(statusCode)
