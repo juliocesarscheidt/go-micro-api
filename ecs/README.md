@@ -117,8 +117,8 @@ echo "$PRIVATE_SUBNET_IDS"
 
 
 # cloudwatch log group
-aws logs create-log-group --region $REGION --log-group-name "/ecs/$API_NAME"
-aws logs put-retention-policy --region $REGION --log-group-name "/ecs/$API_NAME" --retention-in-days 1
+aws logs create-log-group --region $REGION --log-group-name "/aws/ecs/$API_NAME"
+aws logs put-retention-policy --region $REGION --log-group-name "/aws/ecs/$API_NAME" --retention-in-days 1
 
 
 # create role for ecs AmazonECSTaskExecutionRole
@@ -141,8 +141,7 @@ aws iam attach-role-policy \
 # create ecs cluster
 aws ecs create-cluster --region $REGION --cluster-name $ECS_CLUSTER
 
-export ACCOUNT_ID=$(aws sts get-caller-identity --query 'Account' --output text)
-echo $ACCOUNT_ID
+ACCOUNT_ID=$(aws sts get-caller-identity --query 'Account' --output text)
 
 sed -i "s/{{ACCOUNT_ID}}/${ACCOUNT_ID}/; s/{{REGION}}/${REGION}/; s/{{API_NAME}}/${API_NAME}/" task.json
 
@@ -208,6 +207,17 @@ ALB_DNS=$(aws elbv2 describe-load-balancers --region $REGION --name $ALB_NAME --
 
 curl --url "http://${ALB_DNS}/api/v1/message"
 # {"data":"Hello World From ECS","statusCode":200}
+
+
+# enable execution of commands, it requires a special policy and task role
+aws ecs update-service --region $REGION --cluster $ECS_CLUSTER --service $API_NAME --enable-execute-command --force-new-deployment
+
+TASK_ID=$(aws ecs list-tasks --region $REGION --cluster $ECS_CLUSTER --service $API_NAME --output text --query 'taskArns[0]')
+
+aws ecs describe-tasks --region $REGION --cluster $ECS_CLUSTER --tasks $TASK_ID
+
+aws ecs execute-command --region $REGION --cluster $ECS_CLUSTER --task $TASK_ID --container $API_NAME --command "/bin/sh" --interactive
+
 
 
 # query to get some logs on cloudwatch

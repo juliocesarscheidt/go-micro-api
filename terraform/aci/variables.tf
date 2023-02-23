@@ -48,12 +48,12 @@ variable "api_port" {
 
 variable "registry_username" {
   type        = string
-  description = "ACR Registry Username"
+  description = "Registry Username"
   sensitive   = true
 }
 
 variable "registry_password" {
   type        = string
-  description = "ACR Registry Password"
+  description = "Registry Password"
   sensitive   = true
 }

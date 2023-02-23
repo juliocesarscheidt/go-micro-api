@@ -6,6 +6,7 @@ STORAGE_ACCOUNT_BACKEND?=gomicroapistorageacc
 STORAGE_ACCOUNT_BACKEND_LOCATION?=eastus
 # registry variables
 REGISTRY_USERNAME?=gomicroapi
+REGISTRY_URL?=$(REGISTRY_USERNAME).azurecr.io
 # api variables
 API_NAME?=go-micro-api
 API_VERSION?=v1.0.0
@@ -37,19 +38,19 @@ create-registry:
 docker-login:
 	export REGISTRY_PASSWORD="$$(az acr credential show --resource-group $(RESOURCE_GROUP) \
 		--name $(REGISTRY_USERNAME) --query passwords[0].value | sed 's/^"//; s/"$$//')"; \
-	echo "$${REGISTRY_PASSWORD}" | docker login "$(REGISTRY_USERNAME).azurecr.io" \
+	echo "$${REGISTRY_PASSWORD}" | docker login "$(REGISTRY_URL)" \
 			--username "$(REGISTRY_USERNAME)" --password-stdin
 
 ## push-image: Push docke image to ACR
 .PHONY: push-image
 push-image: create-resource-group create-registry docker-login
 	docker image pull "docker.io/juliocesarmidia/$(API_NAME):v1.0.0"
-	docker image tag "docker.io/juliocesarmidia/$(API_NAME):v1.0.0" "$(REGISTRY_USERNAME).azurecr.io/$(API_NAME):$(API_VERSION)"
-	docker image push "$(REGISTRY_USERNAME).azurecr.io/$(API_NAME):$(API_VERSION)"
+	docker image tag "docker.io/juliocesarmidia/$(API_NAME):v1.0.0" "$(REGISTRY_URL)/$(API_NAME):$(API_VERSION)"
+	docker image push "$(REGISTRY_URL)/$(API_NAME):$(API_VERSION)"
 
-## create-backend-storage-account: Create the backend storage account for Terraform
-.PHONY: create-backend-storage-account
-create-backend-storage-account:
+## create-backend: Create the backend storage account for Terraform
+.PHONY: create-backend
+create-backend:
 	-@az storage account show --resource-group $(RESOURCE_GROUP) --name $(STORAGE_ACCOUNT_BACKEND) 2> /dev/null || \
 		az storage account create --resource-group $(RESOURCE_GROUP) --name $(STORAGE_ACCOUNT_BACKEND) \
 		--location $(STORAGE_ACCOUNT_BACKEND_LOCATION) --sku Standard_LRS
@@ -58,12 +59,12 @@ create-backend-storage-account:
 
 ## init: Initialization of Terraform
 .PHONY: init
-init: create-backend-storage-account
+init: create-backend
 	terraform init -upgrade=true \
 		-backend-config="resource_group_name=$(RESOURCE_GROUP)" \
 		-backend-config="storage_account_name=$(STORAGE_ACCOUNT_BACKEND)" \
 		-backend-config="container_name=$(API_NAME)" \
-		-backend-config="key=terraform.tfstate"
+		-backend-config="key=state.tfstate"
 
 ## tf-fmt: Format Terraform scripts
 .PHONY: tf-fmt
@@ -108,7 +109,12 @@ apply:
 ## output: Output of Terraform
 .PHONY: output
 output:
-	-@terraform output -raw app_gw_public_ip
+	-@terraform output -raw public_ip
+
+## refresh: Refresh Terraform state
+.PHONY: refresh
+refresh:
+	terraform refresh -var-file=variables.tfvars
 
 ## logs: Logs from container instance
 .PHONY: logs
@@ -129,11 +135,11 @@ destroy:
 		-var api_version="$(API_VERSION)" \
 		-var api_message="$(API_MESSAGE)" \
 		-auto-approve
-	make destroy-azure-resources
+	make destroy-base-resources
 
-## destroy-azure-resources: Destroy Azure resources
-.PHONY: destroy-azure-resources
-destroy-azure-resources:
+## destroy-base-resources: Destroy base resources
+.PHONY: destroy-base-resources
+destroy-base-resources:
 	-@az acr delete --resource-group $(RESOURCE_GROUP) --name $(REGISTRY_USERNAME) --yes
 	-@az storage account delete --resource-group $(RESOURCE_GROUP) --name $(STORAGE_ACCOUNT_BACKEND) --yes
 	-@az group delete --name $(RESOURCE_GROUP) --yes

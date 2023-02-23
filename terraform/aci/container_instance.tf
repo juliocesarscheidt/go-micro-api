@@ -3,7 +3,7 @@ resource "azurerm_container_group" "container_api" {
   location            = data.azurerm_resource_group.resource_group.location
   resource_group_name = data.azurerm_resource_group.resource_group.name
   ip_address_type     = "Private"
-  subnet_ids          = [azurerm_subnet.subnet_container.id]
+  subnet_ids          = [azurerm_subnet.subnet_b.id]
   os_type             = "Linux"
   restart_policy      = "Always"
   image_registry_credential {
@@ -39,7 +39,7 @@ resource "azurerm_container_group" "container_api" {
       period_seconds        = 15
       timeout_seconds       = 10
       failure_threshold     = 5
-      success_threshold     = 1
+      success_threshold     = 2
     }
     environment_variables = {
       MESSAGE = var.api_message
@@ -51,7 +51,7 @@ resource "azurerm_container_group" "container_api" {
   }
   tags = {}
   depends_on = [
-    azurerm_subnet.subnet_container,
+    azurerm_subnet.subnet_b,
     azurerm_log_analytics_workspace.log_analytics_workspace,
   ]
 }

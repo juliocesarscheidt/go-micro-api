@@ -142,6 +142,10 @@ curl --url "http://${APP_GW_IP}/api/v1/message"
 # {"data":"Hello World From ACI","statusCode":200}
 
 
+# execute commands on container
+az container exec --resource-group $RESOURCE_GROUP --name $API_NAME --exec-command "/bin/sh"
+
+
 # get logs from container
 az container logs --resource-group $RESOURCE_GROUP --name $API_NAME --follow
 

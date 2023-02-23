@@ -25,8 +25,8 @@ make plan
 make apply
 
 # show application gateway ip
-APP_GW_IP=$(make output)
-curl --url "http://${APP_GW_IP}/api/v1/message"
+LB_IP=$(make output)
+curl --url "http://${LB_IP}/api/v1/message"
 
 # clean up
 make destroy
