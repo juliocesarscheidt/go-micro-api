@@ -1,9 +1,11 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -59,7 +61,7 @@ func init() {
 	prometheus.MustRegister(EndpointDurationMetrics)
 	// message variable from environment
 	Message = getFromEnvOrDefaultAsString("MESSAGE", "Hello World")
-	Log.Infof("Using MESSAGE from ENV :: %s", Message)
+	Log.Infof("Setting MESSAGE from ENV :: %s", Message)
 }
 
 func putEndpointMetrics(path, method, status string) {
@@ -136,20 +138,25 @@ func handleConfigurationRequestPut(statusCode int, message interface{}) http.Han
 			writter.WriteHeader(http.StatusMethodNotAllowed)
 			return
 		}
-		body, _ := ioutil.ReadAll(req.Body)
-		payload := ConfigurationDto{}
-		err := json.Unmarshal([]byte(string(body)), &payload)
+		// max body size accepted is 1024 bytes (1 KB), otherwise it will return bad request
+		limitedReader := &io.LimitedReader{R: req.Body, N: 1024}
+		bodyCopy := new(bytes.Buffer)
+		_, err := io.Copy(bodyCopy, limitedReader)
 		if err != nil {
 			Log.Errorf("Error :: %v", err)
 			writter.WriteHeader(http.StatusInternalServerError)
 			return
 		}
+		payload := ConfigurationDto{}
+		bodyData := bodyCopy.Bytes()
+		req.Body = ioutil.NopCloser(bytes.NewReader(bodyData))
+		json.Unmarshal(bodyData, &payload)
 		if payload.Message == "" {
 			writter.WriteHeader(http.StatusBadRequest)
 			return
 		}
 		Message = payload.Message
-		Log.Infof("Using MESSAGE from CONFIGURATION :: %s", Message)
+		Log.Infof("Setting MESSAGE from CONFIGURATION :: %s", Message)
 		responseJSONBytes := buildHTTPResponse(statusCode, message, req.URL.Path, req.Host, req.Method, req.RemoteAddr)
 		writter.WriteHeader(statusCode)
 		writter.Write(responseJSONBytes)
@@ -159,7 +166,7 @@ func handleConfigurationRequestPut(statusCode int, message interface{}) http.Han
 func main() {
 	// add routes
 	http.HandleFunc("/api/v1/message", handleMessageRequestGet(http.StatusOK))
-	http.HandleFunc("/api/v1/configuration", handleConfigurationRequestPut(http.StatusAccepted, "Accepted"))
+	http.HandleFunc("/api/v1/configuration", handleConfigurationRequestPut(http.StatusAccepted, nil))
 	http.HandleFunc("/api/v1/ping", handleDefaultRequestGet(http.StatusOK, "Pong"))
 	http.HandleFunc("/api/v1/health/live", handleDefaultRequestGet(http.StatusOK, "Alive"))
 	http.HandleFunc("/api/v1/health/ready", handleDefaultRequestGet(http.StatusOK, "Ready"))
