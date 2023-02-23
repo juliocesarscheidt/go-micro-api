@@ -19,7 +19,7 @@ resource "azurerm_application_gateway" "app_gw" {
   }
   gateway_ip_configuration {
     name      = local.gateway_ip_configuration
-    subnet_id = azurerm_subnet.subnet_app_gw.id
+    subnet_id = azurerm_subnet.subnet_a.id
   }
   frontend_port {
     name = local.frontend_port_name
@@ -68,7 +68,7 @@ resource "azurerm_application_gateway" "app_gw" {
     priority                   = 1000
   }
   depends_on = [
-    azurerm_subnet.subnet_app_gw,
+    azurerm_subnet.subnet_a,
     azurerm_public_ip.pub_ip_app_gw,
     azurerm_container_group.container_api,
   ]

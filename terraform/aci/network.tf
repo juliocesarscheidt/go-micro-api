@@ -6,7 +6,7 @@ resource "azurerm_virtual_network" "vnet" {
   depends_on          = []
 }
 
-resource "azurerm_subnet" "subnet_app_gw" {
+resource "azurerm_subnet" "subnet_a" {
   name                 = "${var.api_name}-subnet-a"
   virtual_network_name = azurerm_virtual_network.vnet.name
   resource_group_name  = data.azurerm_resource_group.resource_group.name
@@ -16,7 +16,7 @@ resource "azurerm_subnet" "subnet_app_gw" {
   ]
 }
 
-resource "azurerm_subnet" "subnet_container" {
+resource "azurerm_subnet" "subnet_b" {
   name                 = "${var.api_name}-subnet-b"
   virtual_network_name = azurerm_virtual_network.vnet.name
   resource_group_name  = data.azurerm_resource_group.resource_group.name

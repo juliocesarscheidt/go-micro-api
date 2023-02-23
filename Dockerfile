@@ -11,7 +11,7 @@ COPY ./ ./
 RUN GOOS=linux GOARCH=amd64 GO111MODULE=on CGO_ENABLED=0 \
     go build -ldflags="-s -w" -o ./main .
 
-FROM gcr.io/distroless/static:nonroot
+FROM busybox:1
 
 LABEL maintainer="Julio Cesar <julio@blackdevs.com.br>"
 LABEL org.opencontainers.image.source "https://github.com/juliocesarscheidt/go-micro-api"
@@ -19,8 +19,8 @@ LABEL org.opencontainers.image.description "Micro API made with Golang to run on
 LABEL org.opencontainers.image.licenses "MIT"
 
 WORKDIR /
+
 COPY --from=builder /go/src/app/main .
-USER nonroot:nonroot
 
 EXPOSE 9000
 
