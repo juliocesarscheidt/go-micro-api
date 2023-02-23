@@ -41,14 +41,14 @@ docker-login:
 	echo "$${REGISTRY_PASSWORD}" | docker login "$(REGISTRY_URL)" \
 			--username "$(REGISTRY_USERNAME)" --password-stdin
 
-## push-image: Push docke image to ACR
+## push-image: Push docker image to ACR
 .PHONY: push-image
 push-image: create-resource-group create-registry docker-login
 	docker image pull "docker.io/juliocesarmidia/$(API_NAME):v1.0.0"
 	docker image tag "docker.io/juliocesarmidia/$(API_NAME):v1.0.0" "$(REGISTRY_URL)/$(API_NAME):$(API_VERSION)"
 	docker image push "$(REGISTRY_URL)/$(API_NAME):$(API_VERSION)"
 
-## create-backend: Create the backend storage account for Terraform
+## create-backend: Create the backend for Terraform
 .PHONY: create-backend
 create-backend:
 	-@az storage account show --resource-group $(RESOURCE_GROUP) --name $(STORAGE_ACCOUNT_BACKEND) 2> /dev/null || \
