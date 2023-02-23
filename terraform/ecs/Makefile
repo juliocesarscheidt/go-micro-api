@@ -26,26 +26,26 @@ help: Makefile
 	@sed -n 's/^##//p' $< | column -t -s ':' |  sed -e 's/^/ /'
 	@echo
 
-## create-registry: Create ACR
+## create-registry: Create ECR
 .PHONY: create-registry
 create-registry:
 	-@aws ecr describe-repositories --repository-names $(API_NAME) --region $(AWS_DEFAULT_REGION) || \
 		aws ecr create-repository --repository-name $(API_NAME) --region $(AWS_DEFAULT_REGION)
 
-## docker-login: Login on ACR
+## docker-login: Login on ECR
 .PHONY: docker-login
 docker-login:
 	aws ecr get-login-password --region $(AWS_DEFAULT_REGION) | \
 		docker login --username $(REGISTRY_USERNAME) $(REGISTRY_URL) --password-stdin
 
-## push-image: Push docke image to ACR
+## push-image: Push docker image to ECR
 .PHONY: push-image
 push-image: create-registry docker-login
 	docker image pull "docker.io/juliocesarmidia/$(API_NAME):v1.0.0"
 	docker image tag "docker.io/juliocesarmidia/$(API_NAME):v1.0.0" "$(REGISTRY_URL)/$(API_NAME):$(API_VERSION)"
 	docker image push "$(REGISTRY_URL)/$(API_NAME):$(API_VERSION)"
 
-## create-backend: Create the backend storage account for Terraform
+## create-backend: Create the backend for Terraform
 .PHONY: create-backend
 create-backend:
 	-@aws s3 ls s3://$(AWS_BACKEND_BUCKET) --region $(AWS_BACKEND_REGION) 2> /dev/null || \
