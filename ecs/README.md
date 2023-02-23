@@ -24,6 +24,9 @@ SUBNETS_PREFIX_NAME="$API_NAME-subnet"
 PUBLIC_ROUTE_TB_NAME="$API_NAME-public-rt"
 PRIVATE_ROUTE_TB_NAME="$API_NAME-private-rt"
 
+# get account id, it will be used later
+ACCOUNT_ID=$(aws sts get-caller-identity --query 'Account' --output text)
+
 
 # vpc config, create vpc with 2 public and 2 private subnets
 # min 10.100.0.0
@@ -32,14 +35,16 @@ VPC_ID=$(aws ec2 create-vpc --region $REGION \
   --cidr-block 10.100.0.0/20 \
   --tag-specification ResourceType=vpc,Tags="[{Key=Name,Value=$VPC_NAME}]" \
   --query 'Vpc.VpcId' --output text)
-# enable dns hostnames
-aws ec2 modify-vpc-attribute --region $REGION --vpc-id "$VPC_ID" --enable-dns-hostnames '{"Value":true}'
+# enable dns hostnames for vpc
+aws ec2 modify-vpc-attribute --region $REGION \
+  --vpc-id "$VPC_ID" --enable-dns-hostnames '{"Value":true}'
 
 
 # create internet gateway
 INT_GW_ID=$(aws ec2 create-internet-gateway --region $REGION --tag-specification ResourceType=internet-gateway,Tags="[{Key=Name,Value=$INT_GW_NAME}]" --query 'InternetGateway.InternetGatewayId' --output text)
 # attach internet gateway to vpc
-aws ec2 attach-internet-gateway --region $REGION --internet-gateway-id "$INT_GW_ID" --vpc-id "$VPC_ID"
+aws ec2 attach-internet-gateway --region $REGION \
+  --internet-gateway-id "$INT_GW_ID" --vpc-id "$VPC_ID"
 
 
 # public subnets setup
@@ -72,6 +77,7 @@ function create_public_subnet() {
 }
 PUBLIC_SUBNET_ID_A=$(create_public_subnet "${SUBNETS_PREFIX_NAME}-public-a" "10.100.0.0/24" "${REGION}a" "$VPC_ID" "$PUBLIC_RT_ID")
 PUBLIC_SUBNET_ID_B=$(create_public_subnet "${SUBNETS_PREFIX_NAME}-public-b" "10.100.1.0/24" "${REGION}b" "$VPC_ID" "$PUBLIC_RT_ID")
+
 PUBLIC_SUBNET_IDS="$PUBLIC_SUBNET_ID_A,$PUBLIC_SUBNET_ID_B"
 echo "$PUBLIC_SUBNET_IDS"
 
@@ -91,10 +97,6 @@ PRIVATE_RT_ID=$(aws ec2 create-route-table \
   --vpc-id "$VPC_ID" \
   --tag-specification ResourceType=route-table,Tags="[{Key=Name,Value=$PRIVATE_ROUTE_TB_NAME}]" \
   --query 'RouteTable.RouteTableId' --output text)
-# wait for nat gateway to be ready
-sleep 30
-# route to nat available
-aws ec2 create-route --region $REGION --route-table-id "$PRIVATE_RT_ID" --destination-cidr-block "0.0.0.0/0" --nat-gateway-id "$NAT_GW_ID"
 
 function create_private_subnet() {
   local SUBNET_NAME="$1"
@@ -112,8 +114,16 @@ function create_private_subnet() {
   aws ec2 associate-route-table --region $REGION --subnet-id "$SUBNET_ID" --route-table-id "$RT_ID" 1> /dev/null
   echo "$SUBNET_ID"
 }
-PRIVATE_SUBNET_IDS="$(create_private_subnet "${SUBNETS_PREFIX_NAME}-private-a" "10.100.2.0/24" "${REGION}a" "$VPC_ID" "$PRIVATE_RT_ID"),$(create_private_subnet "${SUBNETS_PREFIX_NAME}-private-b" "10.100.3.0/24" "${REGION}b" "$VPC_ID" "$PRIVATE_RT_ID")"
+PRIVATE_SUBNET_ID_A=$(create_private_subnet "${SUBNETS_PREFIX_NAME}-private-a" "10.100.2.0/24" "${REGION}a" "$VPC_ID" "$PRIVATE_RT_ID")
+PRIVATE_SUBNET_ID_B=$(create_private_subnet "${SUBNETS_PREFIX_NAME}-private-b" "10.100.3.0/24" "${REGION}b" "$VPC_ID" "$PRIVATE_RT_ID")
+
+PRIVATE_SUBNET_IDS="$PRIVATE_SUBNET_ID_A,$PRIVATE_SUBNET_ID_B"
 echo "$PRIVATE_SUBNET_IDS"
+
+# wait a little until nat gateway will be available
+sleep 30
+# route to nat gateway
+aws ec2 create-route --region $REGION --route-table-id "$PRIVATE_RT_ID" --destination-cidr-block "0.0.0.0/0" --nat-gateway-id "$NAT_GW_ID"
 
 
 # cloudwatch log group
@@ -121,18 +131,39 @@ aws logs create-log-group --region $REGION --log-group-name "/aws/ecs/$API_NAME"
 aws logs put-retention-policy --region $REGION --log-group-name "/aws/ecs/$API_NAME" --retention-in-days 1
 
 
-# create role for ecs AmazonECSTaskExecutionRole
-aws iam create-role \
-  --role-name AmazonECSTaskExecutionRole \
+# create ecr repository
+aws ecr create-repository --repository-name $API_NAME --region $REGION
+REGISTRY_URL="$ACCOUNT_ID.dkr.ecr.$REGION.amazonaws.com"
+# login
+aws ecr get-login-password --region $REGION | \
+  docker login --username AWS $REGISTRY_URL --password-stdin
+
+# get image from docker and push to ecr
+docker image pull "docker.io/juliocesarmidia/go-micro-api:v1.0.0"
+docker image tag "docker.io/juliocesarmidia/go-micro-api:v1.0.0" "$REGISTRY_URL/go-micro-api:v1.0.0"
+docker image push "$REGISTRY_URL/go-micro-api:v1.0.0"
+
+
+# create task execution role for ecs => AmazonECSTaskExecutionRole
+aws iam create-role --role-name AmazonECSTaskExecutionRole \
   --assume-role-policy-document file://./AmazonECSTaskExecutionRole.json
 
 aws iam attach-role-policy \
   --policy-arn "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy" \
   --role-name AmazonECSTaskExecutionRole
-
 aws iam attach-role-policy \
   --policy-arn "arn:aws:iam::aws:policy/AmazonECS_FullAccess" \
   --role-name AmazonECSTaskExecutionRole
+
+# create task role for ecs => AmazonECSTaskRole
+aws iam create-role --role-name AmazonECSTaskRole \
+  --assume-role-policy-document file://./AmazonECSTaskRole.json
+
+ECS_TASK_POLICY_ARN=$(aws iam create-policy --policy-name AmazonECSTaskRolePolicy \
+  --policy-document file://./AmazonECSTaskRolePolicy.json \
+  --query 'Policy.Arn' --output text)
+aws iam attach-role-policy --policy-arn $ECS_TASK_POLICY_ARN \
+  --role-name AmazonECSTaskRole
 ```
 
 ## Creating the load balancer and ECS
@@ -141,8 +172,7 @@ aws iam attach-role-policy \
 # create ecs cluster
 aws ecs create-cluster --region $REGION --cluster-name $ECS_CLUSTER
 
-ACCOUNT_ID=$(aws sts get-caller-identity --query 'Account' --output text)
-
+# replacing info on task.json
 sed -i "s/{{ACCOUNT_ID}}/${ACCOUNT_ID}/; s/{{REGION}}/${REGION}/; s/{{API_NAME}}/${API_NAME}/" task.json
 
 aws ecs register-task-definition --region $REGION --cli-input-json file://./task.json
@@ -197,6 +227,7 @@ aws ecs create-service --region $REGION \
   --task-definition $TASK_DEF \
   --desired-count 1 \
   --launch-type "FARGATE" \
+  --enable-execute-command \
   --network-configuration "awsvpcConfiguration={subnets=[$PRIVATE_SUBNET_IDS],securityGroups=[$ECS_SG_ID],assignPublicIp=DISABLED}" \
   --cli-input-json file://./service.json
 
