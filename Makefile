@@ -1,5 +1,5 @@
 SHELL=/bin/bash
-PACKAGES := $(shell go list ./)
+PACKAGES := $(shell cd src/ && go list ./)
 # docker variables
 DOCKER_BUILDKIT=1
 BUILDKIT_PROGRESS=plain
@@ -21,28 +21,32 @@ help: Makefile
 ## go-vet: vet code with go CLI
 .PHONY: go-vet
 go-vet:
+	cd src/; \
 	go vet $(PACKAGES)
 
 ## go-test: run unit tests with go CLI
 .PHONY: go-test
 go-test:
+	cd src/; \
 	go test -race -cover $(PACKAGES)
 
 ## go-build: build a binary with go CLI
 .PHONY: go-build
 go-build:
+	cd src/; \
 	GOOS=linux GOARCH=amd64 GO111MODULE=on CGO_ENABLED=0 \
-    go build -ldflags="-s -w" -o ./main .
+    go build -ldflags="-s -w" -o main .
 
 ## go-run: run the API with go CLI
 .PHONY: go-run
 go-run:
+	cd src/; \
 	MESSAGE="$(API_MESSAGE)" go run main.go
 
 ## docker-build: build the docker image
 .PHONY: docker-build
 docker-build:
-	docker image build --tag "juliocesarmidia/$(API_NAME):$(API_VERSION)" .
+	docker image build --tag "juliocesarmidia/$(API_NAME):$(API_VERSION)" ./src
 
 ## docker-push: push the docker image
 .PHONY: docker-push
@@ -55,7 +59,10 @@ docker-run:
 	docker container run -d \
 		--name $(API_NAME) \
 		--publish 9000:9000 \
-		--env MESSAGE="$(API_MESSAGE)"  \
+		--cap-drop ALL \
+		--memory='16MB' \
+		--cpus='0.1' \
+		--env MESSAGE="$(API_MESSAGE)" \
 		--restart on-failure \
 		"juliocesarmidia/$(API_NAME):$(API_VERSION)"
 
@@ -63,6 +70,16 @@ docker-run:
 .PHONY: docker-logs
 docker-logs:
 	docker container logs -f --tail 100 $(API_NAME)
+
+## docker-exec: exec a command into docker container
+.PHONY: docker-exec
+docker-exec:
+	docker container exec -it $(API_NAME) /bin/sh
+
+## docker-rm: remove running docker container
+.PHONY: docker-rm
+docker-rm:
+	docker container rm -f $(API_NAME)
 
 ## helm-install: install the helm release
 .PHONY: helm-install
