@@ -131,4 +131,7 @@ destroy:
 ## destroy-base-resources: Destroy base resources
 .PHONY: destroy-base-resources
 destroy-base-resources:
+	-@aws s3 rm s3://$(AWS_BACKEND_BUCKET)/ --recursive
 	-@aws s3api delete-bucket --bucket $(AWS_BACKEND_BUCKET) --region $(AWS_BACKEND_REGION)
+	-@aws ecr batch-delete-image --repository-name $(API_NAME) --region $(AWS_DEFAULT_REGION) --image-ids imageTag=v1.0.0
+	-@aws ecr delete-repository --repository-name $(API_NAME) --region $(AWS_DEFAULT_REGION)
