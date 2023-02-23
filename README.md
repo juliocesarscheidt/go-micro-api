@@ -74,7 +74,7 @@ INGRESS_IP=$(kubectl get service -n ingress-nginx \
 echo "${INGRESS_IP} api.golang.local" >> /etc/hosts
 
 curl --url 'http://api.golang.local/api/v1/message'
-curl -X PUT --data '{"message": "Hello World v2"}' --url 'http://api.golang.local/api/v1/message'
+curl -X PUT --data '{"message": "Hello World v2"}' --url 'http://api.golang.local/api/v1/configuration'
 curl --url 'http://api.golang.local/api/v1/ping'
 curl --url 'http://api.golang.local/api/v1/health/live'
 curl --url 'http://api.golang.local/api/v1/health/ready'

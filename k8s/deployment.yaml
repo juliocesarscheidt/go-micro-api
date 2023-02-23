@@ -6,7 +6,7 @@ metadata:
   labels:
     app.kubernetes.io/name: go-micro-api
 spec:
-  replicas: 2
+  replicas: 1
   strategy:
     type: RollingUpdate
     rollingUpdate:
@@ -92,8 +92,23 @@ spec:
         backend:
           serviceName: go-micro-api
           servicePort: 80
+      - path: /api/v1/configuration
+        pathType: Exact
+        backend:
+          serviceName: go-micro-api
+          servicePort: 80
+      - path: /api/v1/ping
+        pathType: Exact
+        backend:
+          serviceName: go-micro-api
+          servicePort: 80
       - path: /api/v1/health/
         pathType: Prefix
+        backend:
+          serviceName: go-micro-api
+          servicePort: 80
+      - path: /metrics
+        pathType: Exact
         backend:
           serviceName: go-micro-api
           servicePort: 80
