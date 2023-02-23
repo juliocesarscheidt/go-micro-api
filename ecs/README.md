@@ -252,8 +252,6 @@ aws ecs describe-tasks --region $REGION --cluster $ECS_CLUSTER --tasks $TASK_ID
 
 aws ecs execute-command --region $REGION --cluster $ECS_CLUSTER --task $TASK_ID --container $API_NAME --command "/bin/sh" --interactive
 
-
-
 # query to get some logs on cloudwatch
 fields host, ip, message as msg, method, path, severity, timestamp
 | sort @timestamp desc
