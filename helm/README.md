@@ -5,7 +5,6 @@ RELEASE_NAME="go-micro-api"
 
 # create chart
 helm create "application"
-
 mv "application" helm
 
 # install and update

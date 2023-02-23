@@ -134,7 +134,7 @@ func HandleDefaultRequestGet(response interface{}) http.HandlerFunc {
 		writter.Header().Set("Content-Type", "application/json")
 		statusCode := http.StatusOK
 		defer func() {
-			LogRequestMetrics(statusCode, req.URL.Path, req.Host, req.Method, ExtractIpFromRemoteAddr(req.RemoteAddr), Message)
+			LogRequestMetrics(statusCode, req.URL.Path, req.Host, req.Method, ExtractIpFromRemoteAddr(req.RemoteAddr), response)
 		}()
 		if req.Method != "GET" {
 			statusCode = http.StatusMethodNotAllowed
@@ -152,7 +152,7 @@ func HandleConfigurationRequestPut() http.HandlerFunc {
 		writter.Header().Set("Content-Type", "application/json")
 		statusCode := http.StatusAccepted
 		defer func() {
-			LogRequestMetrics(statusCode, req.URL.Path, req.Host, req.Method, ExtractIpFromRemoteAddr(req.RemoteAddr), Message)
+			LogRequestMetrics(statusCode, req.URL.Path, req.Host, req.Method, ExtractIpFromRemoteAddr(req.RemoteAddr), nil)
 		}()
 		if req.Method != "PUT" {
 			statusCode = http.StatusMethodNotAllowed

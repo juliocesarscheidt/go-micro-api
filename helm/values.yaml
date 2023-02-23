@@ -35,8 +35,14 @@ ingress:
       paths:
       - path: /api/v1/message
         pathType: Exact
+      - path: /api/v1/configuration
+        pathType: Exact
+      - path: /api/v1/ping
+        pathType: Exact
       - path: /api/v1/health/
         pathType: Prefix
+      - path: /metrics
+        pathType: Exact
   tls: []
   #  - secretName: go-micro-api-tls
   #    hosts:
