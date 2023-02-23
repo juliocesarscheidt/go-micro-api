@@ -216,7 +216,7 @@ TASK_ID=$(aws ecs list-tasks --region $REGION --cluster $ECS_CLUSTER --service $
 
 aws ecs describe-tasks --region $REGION --cluster $ECS_CLUSTER --tasks $TASK_ID
 
-aws ecs execute-command --region $REGION --cluster $ECS_CLUSTER --task $TASK_ID --container $API_NAME --command "sh" --interactive
+aws ecs execute-command --region $REGION --cluster $ECS_CLUSTER --task $TASK_ID --container $API_NAME --command "/bin/sh" --interactive
 
 
 
