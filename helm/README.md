@@ -16,7 +16,7 @@ helm upgrade -i "$RELEASE_NAME" ./helm --debug --wait --timeout 15m
 helm ls
 
 # rollback a release
-helm rollback "$RELEASE_NAME" 1
+helm rollback "$RELEASE_NAME" $REVISION
 
 # generate template
 helm template "$RELEASE_NAME" --set image.tag="v1.0.0" ./helm > deployment.yaml
