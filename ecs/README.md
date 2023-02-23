@@ -211,6 +211,9 @@ ALB_ARN=$(aws elbv2 create-load-balancer \
   --security-groups $ALB_SG_ID \
   --query 'LoadBalancers[0].LoadBalancerArn' --output text)
 
+# wait a little until load balancer will be provisioned
+sleep 30
+
 # create listener
 aws elbv2 create-listener --region $REGION \
   --load-balancer-arn $ALB_ARN \
