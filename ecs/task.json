@@ -26,7 +26,7 @@
     }
   }],
   "family": "{{API_NAME}}",
-  "taskRoleArn": "",
+  "taskRoleArn": "arn:aws:iam::{{ACCOUNT_ID}}:role/AmazonECSTaskRole",
   "executionRoleArn": "arn:aws:iam::{{ACCOUNT_ID}}:role/AmazonECSTaskExecutionRole",
   "networkMode": "awsvpc",
   "volumes": [],
