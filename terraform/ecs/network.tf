@@ -90,3 +90,26 @@ resource "aws_route_table_association" "assoc_route_private" {
   route_table_id = aws_route_table.private_route_table.id
   depends_on     = [aws_subnet.private_subnet, aws_route_table.private_route_table]
 }
+
+######## internet and nat gateways ########
+resource "aws_internet_gateway" "internet_gw" {
+  vpc_id = aws_vpc.vpc_0.id
+  tags = {
+    Name = "${var.api_name}-int-gw"
+  }
+  depends_on = [aws_vpc.vpc_0]
+}
+
+resource "aws_eip" "nat_eip" {
+  vpc = true
+}
+
+resource "aws_nat_gateway" "nat_gw" {
+  allocation_id = aws_eip.nat_eip.id
+  subnet_id     = aws_subnet.public_subnet[0].id
+  tags = {
+    Name = "${var.api_name}-nat-gw"
+  }
+  depends_on = [aws_eip.nat_eip, aws_subnet.public_subnet]
+}
+
