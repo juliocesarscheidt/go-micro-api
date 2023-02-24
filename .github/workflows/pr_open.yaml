@@ -44,9 +44,26 @@ jobs:
         vuln-type: 'os,library'
         severity: 'CRITICAL'
 
+  kube_check:
+    name: Check kubernetes files compliance
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+    env: {}
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+    - name: Kube score
+      run: |
+        curl --silent -L https://github.com/zegl/kube-score/releases/download/v1.14.0/kube-score_1.14.0_linux_amd64 \
+          --output /tmp/kube-score
+        chmod u+x /tmp/kube-score
+        cat ./k8s/deployment.yaml | kube-score score -
+
   push:
     name: Push Image
-    needs: build
+    needs: kube_check
     runs-on: ubuntu-latest
     permissions:
       contents: read

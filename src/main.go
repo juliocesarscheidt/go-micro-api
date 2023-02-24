@@ -12,6 +12,7 @@ import (
 	"os/signal"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -203,7 +204,8 @@ func main() {
 	go func() {
 		http.ListenAndServe(":9000", nil)
 	}()
-	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
+	// cancel on SIGTERM or SIGINT
+	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT)
 	defer cancel()
 	<-ctx.Done()
 }

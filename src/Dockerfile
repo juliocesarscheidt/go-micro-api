@@ -20,8 +20,10 @@ LABEL org.opencontainers.image.licenses "MIT"
 
 WORKDIR /
 
-COPY --from=builder /go/src/app/main .
-
+COPY --from=builder --chown=65534:65534 /go/src/app/main .
 EXPOSE 9000
+
+# user nobody
+USER 65534
 
 ENTRYPOINT [ "/main" ]

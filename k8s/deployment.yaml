@@ -20,10 +20,33 @@ spec:
       labels:
         app.kubernetes.io/name: go-micro-api
     spec:
+      terminationGracePeriodSeconds: 30
+      restartPolicy: Always
       containers:
         - name: go-micro-api
           image: juliocesarmidia/go-micro-api:v1.0.0
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
+          securityContext:
+            capabilities:
+              drop:
+              - ALL
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 65534
+            runAsGroup: 65534
+          lifecycle:
+            postStart:
+              exec:
+                command:
+                  - "sh"
+                  - "-c"
+                  - "echo 'Starting container => Sending log to main process' > /proc/1/fd/1"
+            preStop:
+              exec:
+                command:
+                  - "sh"
+                  - "-c"
+                  - "echo 'Stopping container => Sending log to main process' > /proc/1/fd/1"
           ports:
             - name: http
               containerPort: 9000
@@ -31,12 +54,18 @@ spec:
             httpGet:
               path: /api/v1/health/live
               port: http
+              httpHeaders:
+              - name: Content-type
+                value: application/json
             initialDelaySeconds: 10
             timeoutSeconds: 10
           readinessProbe:
             httpGet:
               path: /api/v1/health/ready
               port: http
+              httpHeaders:
+              - name: Content-type
+                value: application/json
             initialDelaySeconds: 10
             timeoutSeconds: 10
           env:
@@ -48,10 +77,11 @@ spec:
             limits:
               memory: "32Mi"
               cpu: "20m"
+              ephemeral-storage: "10Mi"
             requests:
               memory: "16Mi"
               cpu: "10m"
-      restartPolicy: Always
+              ephemeral-storage: "5Mi"
 
 ---
 
@@ -112,3 +142,24 @@ spec:
         backend:
           serviceName: go-micro-api
           servicePort: 80
+
+---
+
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-specific-tcp-port-ingress-all-egress
+  namespace: default
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: go-micro-api
+  ingress:
+  - ports:
+    - protocol: TCP
+      port: 9000
+  egress:
+  - {}
+  policyTypes:
+  - Ingress
+  - Egress

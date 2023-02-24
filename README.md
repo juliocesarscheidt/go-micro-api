@@ -68,6 +68,7 @@ docker container rm -f go-micro-api
 ```bash
 kubectl apply -f k8s/deployment.yaml
 
+# it requires nginx ingress installed
 INGRESS_IP=$(kubectl get service -n ingress-nginx \
   -l app.kubernetes.io/instance=ingress-nginx --no-headers \
   | tr -s ' ' ' ' | cut -d' ' -f3)
@@ -80,7 +81,7 @@ curl --url 'http://api.golang.local/api/v1/health/live'
 curl --url 'http://api.golang.local/api/v1/health/ready'
 curl --url 'http://api.golang.local/metrics'
 
-kubectl get pod,svc,rs,ingress -n default
+kubectl get pod,svc,rs,ingress,networkpolicy -n default
 
 kubectl logs -f \
   -l app.kubernetes.io/name=go-micro-api \
