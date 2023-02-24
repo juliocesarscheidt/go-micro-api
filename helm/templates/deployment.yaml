@@ -61,7 +61,7 @@ spec:
               - name: Content-type
                 value: application/json
             initialDelaySeconds: 10
-            timeoutSeconds: 30
+            timeoutSeconds: 10
           envFrom:
           - configMapRef:
               name: {{ include "application.fullname" . }}-config

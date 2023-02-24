@@ -198,6 +198,11 @@ ALB_TG_ARN=$(aws elbv2 create-target-group \
   --health-check-port 9000 \
   --health-check-path "/api/v1/health/live" \
   --health-check-protocol HTTP \
+  --health-check-interval-seconds 15 \
+  --health-check-timeout-seconds 10 \
+  --healthy-threshold-count 2 \
+  --unhealthy-threshold-count 5 \
+  --matcher "200-299" \
   --target-type ip \
   --vpc-id $VPC_ID \
   --query 'TargetGroups[0].TargetGroupArn' --output text)

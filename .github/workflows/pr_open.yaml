@@ -46,6 +46,7 @@ jobs:
 
   kube_check:
     name: Check kubernetes files compliance
+    needs: build
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -57,9 +58,8 @@ jobs:
     - name: Kube score
       run: |
         curl --silent -L https://github.com/zegl/kube-score/releases/download/v1.14.0/kube-score_1.14.0_linux_amd64 \
-          --output /tmp/kube-score
-        chmod u+x /tmp/kube-score
-        cat ./k8s/deployment.yaml | kube-score score -
+          --output /tmp/kube-score && chmod u+x /tmp/kube-score
+        cat ./k8s/deployment.yaml | /tmp/kube-score score -
 
   push:
     name: Push Image
