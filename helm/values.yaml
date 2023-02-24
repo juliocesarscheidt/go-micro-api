@@ -1,25 +1,25 @@
 replicaCount: 1
 image:
   repository: juliocesarmidia/go-micro-api
-  pullPolicy: IfNotPresent
+  pullPolicy: Always
   tag: "v1.0.0"
 imagePullSecrets: []
 nameOverride: ""
 fullnameOverride: ""
 serviceAccount:
-  create: true
+  create: false
   annotations: {}
   name: ""
 podAnnotations: {}
 podSecurityContext: {}
-  # fsGroup: 2000
 securityContext:
   capabilities:
     drop:
     - ALL
   readOnlyRootFilesystem: true
-  # runAsNonRoot: true
-  # runAsUser: 1000
+  runAsNonRoot: true
+  runAsUser: 65534
+  runAsGroup: 65534
 service:
   type: ClusterIP
   sourcePort: 9000
@@ -51,9 +51,11 @@ resources:
   limits:
     memory: "32Mi"
     cpu: "20m"
+    ephemeral-storage: "10Mi"
   requests:
     memory: "16Mi"
     cpu: "10m"
+    ephemeral-storage: "5Mi"
 livenessUrl: "/api/v1/health/live"
 readinessUrl: "/api/v1/health/ready"
 configmaps:
