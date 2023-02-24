@@ -1,4 +1,3 @@
-
 resource "aws_iam_role" "ecs_task_role" {
   name               = "AmazonECSTaskRole"
   assume_role_policy = <<EOF
@@ -16,7 +15,7 @@ resource "aws_iam_role" "ecs_task_role" {
 EOF
 }
 
-# required policies in order to allow enable_execute_command in the service
+# required policy in order to allow enable_execute_command in the ecs service
 resource "aws_iam_policy" "ecs_task_role_policy" {
   name   = "AmazonECSTaskRolePolicy"
   policy = <<EOF
