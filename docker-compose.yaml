@@ -1,5 +1,21 @@
 version: "3.4"
 
+x-default-logging: &logging
+  driver: "json-file"
+  options:
+    max-size: "10m"
+    max-file: "5"
+
+networks:
+  subnet_0:
+    driver: bridge
+
+volumes:
+  prometheus-data: {}
+  grafana-data: {}
+
+secrets: {}
+
 services:
   go-micro-api:
     container_name: go-micro-api
@@ -16,6 +32,7 @@ services:
     restart: on-failure
     cap_drop:
       - "ALL"
+    logging: *logging
 
   prometheus:
     container_name: prometheus
@@ -33,6 +50,7 @@ services:
     networks:
       - subnet_0
     restart: on-failure
+    logging: *logging
 
   grafana:
     container_name: grafana
@@ -48,11 +66,4 @@ services:
     networks:
       - subnet_0
     restart: on-failure
-
-networks:
-  subnet_0:
-    driver: bridge
-
-volumes:
-  prometheus-data: {}
-  grafana-data: {}
+    logging: *logging
