@@ -84,6 +84,7 @@ docker image push "$REGISTRY_URL/go-micro-api:v1.0.0"
 
 
 # replace more configs on yaml
+REGISTRY_PASSWORD=$(echo "$REGISTRY_PASSWORD" | sed -r 's/\//\\\//gm')
 sed -i "s/{{REGISTRY_USERNAME}}/${REGISTRY_USERNAME}/; s/{{REGISTRY_PASSWORD}}/${REGISTRY_PASSWORD}/" container-group.yaml
 
 # replace location
