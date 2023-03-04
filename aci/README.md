@@ -157,6 +157,9 @@ APP_GW_IP=$(az network public-ip show \
 curl --url "http://${APP_GW_IP}/api/v1/message"
 # {"data":"Hello World From ACI","statusCode":200}
 
+# 5 minutes
+siege --time 300s --concurrent 255 --benchmark "http://${APP_GW_IP}/api/v1/message"
+
 
 # execute commands on container
 az container exec --resource-group $RESOURCE_GROUP --name $API_NAME --exec-command "/bin/sh"

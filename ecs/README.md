@@ -248,6 +248,9 @@ ALB_DNS=$(aws elbv2 describe-load-balancers --region $REGION --name $ALB_NAME --
 curl --url "http://${ALB_DNS}/api/v1/message"
 # {"data":"Hello World From ECS","statusCode":200}
 
+# 5 minutes
+siege --time 300s --concurrent 255 --benchmark "http://${ALB_DNS}/api/v1/message"
+
 
 # enable execution of commands, it requires a special policy and task role
 aws ecs update-service --region $REGION --cluster $ECS_CLUSTER --service $API_NAME --enable-execute-command --force-new-deployment
@@ -273,7 +276,7 @@ aws application-autoscaling register-scalable-target \
   --region $REGION --service-namespace ecs \
   --scalable-dimension ecs:service:DesiredCount \
   --resource-id "service/$ECS_CLUSTER/$API_NAME" \
-  --min-capacity 1 --max-capacity 5
+  --min-capacity 1 --max-capacity 3
 
 aws ecs describe-services --region $REGION --cluster $ECS_CLUSTER --service $API_NAME
 
@@ -290,13 +293,13 @@ TG_ARN_SUFFIX=$(echo "$TG_ARN_SUFFIX" | sed -r 's/.*:(targetgroup.*)/\1/m')
 echo "$TG_ARN_SUFFIX"
 
 RESOURCE_LABEL="${ALB_ARN_SUFFIX}/${TG_ARN_SUFFIX}"
+RESOURCE_LABEL=$(echo "$RESOURCE_LABEL" | sed -r 's/\//\\\//gm')
 echo "$RESOURCE_LABEL"
 
 sed -i "s/{{RESOURCE_LABEL}}/${RESOURCE_LABEL}/" ALBRequestCountPerTargetPolicy.json
 
-# ALBRequestCountPerTarget
+# using metric ALBRequestCountPerTarget
 # Number of requests completed per target in an Application Load Balancer target group
-
 aws application-autoscaling put-scaling-policy \
   --region $REGION --service-namespace ecs \
   --scalable-dimension ecs:service:DesiredCount \
