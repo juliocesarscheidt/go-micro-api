@@ -1,0 +1,9 @@
+{
+  "TargetValue": 1000,
+  "PredefinedMetricSpecification": {
+    "PredefinedMetricType": "ALBRequestCountPerTarget",
+    "ResourceLabel": "{{RESOURCE_LABEL}}"
+  },
+  "ScaleOutCooldown": 30,
+  "ScaleInCooldown": 30
+}

@@ -35,7 +35,6 @@ resource "aws_alb_target_group" "container_tg" {
     unhealthy_threshold = 5
     timeout             = 10
     interval            = 15
-    matcher             = "200-299"
     protocol            = "HTTP"
     path                = var.api_health_path
     port                = var.api_port

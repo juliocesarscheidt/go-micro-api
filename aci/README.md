@@ -143,8 +143,11 @@ az network application-gateway http-settings update \
   -n $APP_GW_BACKEND_SETTINGS_NAME \
   --port 9000 --protocol http \
   --enable-probe true --probe $PROBE_NAME
+```
 
+## Validating workloads and retrieving logs
 
+```bash
 # show public ip
 APP_GW_IP=$(az network public-ip show \
   --resource-group $RESOURCE_GROUP \

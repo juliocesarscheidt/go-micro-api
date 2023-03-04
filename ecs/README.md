@@ -200,7 +200,6 @@ ALB_TG_ARN=$(aws elbv2 create-target-group \
   --health-check-timeout-seconds 10 \
   --healthy-threshold-count 2 \
   --unhealthy-threshold-count 5 \
-  --matcher "200-299" \
   --target-type ip \
   --vpc-id $VPC_ID \
   --query 'TargetGroups[0].TargetGroupArn' --output text)
@@ -238,7 +237,11 @@ aws ecs create-service --region $REGION \
   --cli-input-json file://./service.json
 
 aws ecs list-services --region $REGION --cluster $ECS_CLUSTER
+```
 
+## Validating workloads and retrieving logs
+
+```bash
 # check load balancer DNS
 ALB_DNS=$(aws elbv2 describe-load-balancers --region $REGION --name $ALB_NAME --query 'LoadBalancers[0].DNSName' --output text)
 
@@ -262,6 +265,47 @@ fields host, ip, message as msg, method, path, severity, timestamp
 | limit 10
 ```
 
+## Add auto-scaling
+
+```bash
+# Register a scalable target
+aws application-autoscaling register-scalable-target \
+  --region $REGION --service-namespace ecs \
+  --scalable-dimension ecs:service:DesiredCount \
+  --resource-id "service/$ECS_CLUSTER/$API_NAME" \
+  --min-capacity 1 --max-capacity 5
+
+aws ecs describe-services --region $REGION --cluster $ECS_CLUSTER --service $API_NAME
+
+# creating resource label
+# resource_label = "${lb.arn_suffix}/${tg.arn_suffix}".
+TG_INFO=$(aws elbv2 describe-target-groups --region $REGION --load-balancer-arn $ALB_ARN --query 'TargetGroups[0]' --output json)
+
+ALB_ARN_SUFFIX=$(echo "$TG_INFO" | jq -r '.LoadBalancerArns[0]')
+ALB_ARN_SUFFIX=$(echo "$ALB_ARN_SUFFIX" | sed -r 's/.*:loadbalancer\/(.*)/\1/m')
+echo "$ALB_ARN_SUFFIX"
+
+TG_ARN_SUFFIX=$(echo "$TG_INFO" | jq -r '.TargetGroupArn')
+TG_ARN_SUFFIX=$(echo "$TG_ARN_SUFFIX" | sed -r 's/.*:(targetgroup.*)/\1/m')
+echo "$TG_ARN_SUFFIX"
+
+RESOURCE_LABEL="${ALB_ARN_SUFFIX}/${TG_ARN_SUFFIX}"
+echo "$RESOURCE_LABEL"
+
+sed -i "s/{{RESOURCE_LABEL}}/${RESOURCE_LABEL}/" ALBRequestCountPerTargetPolicy.json
+
+# ALBRequestCountPerTarget
+# Number of requests completed per target in an Application Load Balancer target group
+
+aws application-autoscaling put-scaling-policy \
+  --region $REGION --service-namespace ecs \
+  --scalable-dimension ecs:service:DesiredCount \
+  --resource-id "service/$ECS_CLUSTER/$API_NAME" \
+  --policy-name alb-requests-target-tracking-policy \
+  --policy-type TargetTrackingScaling \
+  --target-tracking-scaling-policy-configuration file://./ALBRequestCountPerTargetPolicy.json
+```
+
 ## References
 
 > https://docs.aws.amazon.com/AmazonECS/latest/developerguide/ECS_AWSCLI_Fargate.html
@@ -270,3 +314,4 @@ fields host, ip, message as msg, method, path, severity, timestamp
 > https://docs.aws.amazon.com/cli/latest/reference/elbv2/create-load-balancer.html
 > https://docs.aws.amazon.com/cli/latest/reference/ecs/register-task-definition.html
 > https://docs.aws.amazon.com/pt_br/elasticloadbalancing/latest/application/tutorial-application-load-balancer-cli.html
+> https://docs.aws.amazon.com/autoscaling/application/userguide/create-step-scaling-policy-cli.html
