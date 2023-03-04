@@ -120,8 +120,6 @@ PRIVATE_SUBNET_ID_B=$(create_private_subnet "${SUBNETS_PREFIX_NAME}-private-b" "
 PRIVATE_SUBNET_IDS="$PRIVATE_SUBNET_ID_A,$PRIVATE_SUBNET_ID_B"
 echo "$PRIVATE_SUBNET_IDS"
 
-# wait a little until nat gateway will be available
-sleep 30
 # route to nat gateway
 aws ec2 create-route --region $REGION --route-table-id "$PRIVATE_RT_ID" --destination-cidr-block "0.0.0.0/0" --nat-gateway-id "$NAT_GW_ID"
 

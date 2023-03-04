@@ -24,15 +24,14 @@ copilot init \
   --dockerfile './src/Dockerfile' \
   --port 9000 \
   --deploy
-# type 'Load Balanced Web Service'
-# type 'Backend Service'
-
+# types "Request-Driven Web Service", "Load Balanced Web Service", "Backend Service", "Worker Service", "Scheduled Job"
+# environments
 copilot env ls
 copilot env show test
-
+# apps
 copilot app ls
 copilot app show ecs-cluster
-
+# services
 copilot svc ls
 copilot svc show go-micro-api
 copilot svc deploy
