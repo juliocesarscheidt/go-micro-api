@@ -143,8 +143,11 @@ az network application-gateway http-settings update \
   -n $APP_GW_BACKEND_SETTINGS_NAME \
   --port 9000 --protocol http \
   --enable-probe true --probe $PROBE_NAME
+```
 
+## Validating workloads and retrieving logs
 
+```bash
 # show public ip
 APP_GW_IP=$(az network public-ip show \
   --resource-group $RESOURCE_GROUP \
@@ -153,6 +156,9 @@ APP_GW_IP=$(az network public-ip show \
 
 curl --url "http://${APP_GW_IP}/api/v1/message"
 # {"data":"Hello World From ACI","statusCode":200}
+
+# 5 minutes
+siege --time 300s --concurrent 255 --benchmark "http://${APP_GW_IP}/api/v1/message"
 
 
 # execute commands on container
