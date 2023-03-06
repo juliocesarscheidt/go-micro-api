@@ -110,10 +110,19 @@ output:
 refresh:
 	terraform refresh -var-file=variables.tfvars
 
-## logs: Logs from container instance
+## logs: Logs from ECS
 .PHONY: logs
 logs:
-	az container logs --resource-group $(RESOURCE_GROUP) --name $(API_NAME) --follow
+	export QUERY_ID=$$(aws logs start-query --region $(AWS_DEFAULT_REGION) \
+		--log-group-name "/aws/ecs/$(API_NAME)" \
+		--start-time "$$(date -d "$$(date '+%Y-%m-%d') 00:00:00" +%s)" \
+		--end-time "$$(date -d "$$(date '+%Y-%m-%d') 23:59:59" +%s)" \
+		--query queryId --output text \
+		--query-string 'fields host, ip, message as msg, method, path, severity, timestamp | sort @timestamp desc | limit 100'); \
+	sleep 5; \
+	aws logs get-query-results --region $(AWS_DEFAULT_REGION) \
+		--no-paginate --query results \
+		--output text --query-id "$$QUERY_ID"
 
 ## destroy: Destroy Terraform resources and then aws resources
 .PHONY: destroy
