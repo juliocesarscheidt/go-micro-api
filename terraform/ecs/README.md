@@ -26,18 +26,18 @@ export ACCOUNT_ID=$(aws sts get-caller-identity --query 'Account' --output text)
 make push-image
 
 # create the backend bucket on S3 (if doesn't exist, this could take a few minutes) and initializes the terraform
-make init
+make tf-init
 
 # validate and lint the terraform, then do the plan
-make plan
+make tf-plan
 
 # apply the previous plan
-make apply
+make tf-apply
 
 # show application gateway ip
-LB_DNS=$(make output)
+LB_DNS=$(make tf-output)
 curl --url "http://${LB_DNS}/api/v1/message"
 
 # clean up
-make destroy
+make tf-destroy
 ```

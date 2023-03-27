@@ -14,7 +14,7 @@ REGISTRY_URL?=$(ACCOUNT_ID).dkr.ecr.$(AWS_DEFAULT_REGION).amazonaws.com
 # api variables
 API_NAME?=go-micro-api
 API_VERSION?=v1.0.0
-API_MESSAGE?=Hello World From ECS with Terraform
+API_MESSAGE?=Hello World
 API_ENVIRONMENT?=production
 
 all: help
@@ -52,14 +52,14 @@ create-backend:
 	-@aws s3 ls s3://$(AWS_BACKEND_BUCKET) --region $(AWS_BACKEND_REGION) 2> /dev/null || \
 		aws s3api create-bucket --bucket $(AWS_BACKEND_BUCKET) --region $(AWS_BACKEND_REGION) --acl private
 
-## init: Initialization of Terraform
-.PHONY: init
-init: create-backend
+## tf-init: Initialization of Terraform
+.PHONY: tf-init
+tf-init: create-backend
 	terraform init -upgrade=true \
 		-backend-config="bucket=$(AWS_BACKEND_BUCKET)" \
 		-backend-config="key=state.tfstate" \
 		-backend-config="region=$(AWS_BACKEND_REGION)" \
-		-backend-config="workspace_key_prefix=$(API_NAME)" \
+		-backend-config="workspace_key_prefix=terraform/$(API_NAME)" \
 		-backend-config="access_key=$(AWS_BACKEND_ACCESS_KEY_ID)" \
 		-backend-config="secret_key=$(AWS_BACKEND_SECRET_ACCESS_KEY)" \
 		-backend-config="encrypt=true"
@@ -83,9 +83,9 @@ tf-lint:
 		-v $$(pwd):/data \
 		ghcr.io/terraform-linters/tflint
 
-## plan: Planning of Terraform
-.PHONY: plan
-plan: tf-validate tf-lint tf-fmt
+## tf-plan: Planning of Terraform
+.PHONY: tf-plan
+tf-plan: tf-validate tf-lint tf-fmt
 	terraform plan \
 		-out=tfplan \
 		-var-file=variables.tfvars \
@@ -97,19 +97,19 @@ plan: tf-validate tf-lint tf-fmt
 		-var api_environment="$(API_ENVIRONMENT)" \
 		-input=false
 
-## apply: Apply of Terraform
-.PHONY: apply
-apply:
+## tf-apply: Apply of Terraform
+.PHONY: tf-apply
+tf-apply:
 	terraform apply tfplan
 
-## output: Output of Terraform
-.PHONY: output
-output:
+## tf-output: Output of Terraform
+.PHONY: tf-output
+tf-output:
 	-@terraform output -raw public_ip
 
-## refresh: Refresh Terraform state
-.PHONY: refresh
-refresh:
+## tf-refresh: Refresh Terraform state
+.PHONY: tf-refresh
+tf-refresh:
 	terraform refresh -var-file=variables.tfvars
 
 ## logs: Logs from ECS
@@ -126,9 +126,9 @@ logs:
 		--no-paginate --query results \
 		--output text --query-id "$$QUERY_ID"
 
-## destroy: Destroy Terraform resources and then aws resources
-.PHONY: destroy
-destroy:
+## tf-destroy: Destroy Terraform resources and then aws resources
+.PHONY: tf-destroy
+tf-destroy:
 	terraform destroy \
 		-var-file=variables.tfvars \
 		-var aws_region="$(AWS_DEFAULT_REGION)" \

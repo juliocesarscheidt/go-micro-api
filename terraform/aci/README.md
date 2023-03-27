@@ -16,18 +16,18 @@ cd terraform/aci
 make push-image
 
 # create the backend storage account on Azure (if doesn't exist, this could take a few minutes) and initializes the terraform
-make init
+make tf-init
 
 # validate and lint the terraform, then do the plan
-make plan
+make tf-plan
 
 # apply the previous plan
-make apply
+make tf-apply
 
 # show application gateway ip
-LB_IP=$(make output)
+LB_IP=$(make tf-output)
 curl --url "http://${LB_IP}/api/v1/message"
 
 # clean up
-make destroy
+make tf-destroy
 ```

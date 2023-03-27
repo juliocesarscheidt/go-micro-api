@@ -212,8 +212,9 @@ func main() {
 	// add routes
 	http.Handle("/api/v1/message", otelhttp.NewHandler(http.HandlerFunc(HandleMessageRequestGet()), "/api/v1/message"))
 	http.Handle("/api/v1/ping", otelhttp.NewHandler(http.HandlerFunc(HandleDefaultRequestGet("Pong")), "/api/v1/ping"))
-	http.Handle("/api/v1/health/live", otelhttp.NewHandler(http.HandlerFunc(HandleDefaultRequestGet("Alive")), "/api/v1/health/live"))
-	http.Handle("/api/v1/health/ready", otelhttp.NewHandler(http.HandlerFunc(HandleDefaultRequestGet("Ready")), "/api/v1/health/ready"))
+	// healthchecks
+	http.HandleFunc("/api/v1/health/live", HandleDefaultRequestGet("Alive"))
+	http.HandleFunc("/api/v1/health/ready", HandleDefaultRequestGet("Ready"))
 	// prometheus metrics
 	http.Handle("/metrics", promhttp.Handler())
 	// start listening inside other goroutine
