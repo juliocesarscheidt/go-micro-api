@@ -196,7 +196,7 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "increase(gomicroapi_http_request_duration_seconds_sum{path!=\"/metrics\"}[1m]) / increase(gomicroapi_http_request_duration_seconds_count{path!=\"/metrics\"}[1m])",
+          "expr": "sum(increase(gomicroapi_http_request_duration_seconds_sum{path!=\"/metrics\"}[1m])) by (job)\r\n  /\r\nsum(increase(gomicroapi_http_request_duration_seconds_count{path!=\"/metrics\"}[1m])) by (job)",
           "instant": false,
           "legendFormat": "{{path}} {{method}} {{status}}",
           "range": true,
@@ -228,7 +228,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 12
+        "y": 9
       },
       "hiddenSeries": false,
       "id": 7,
@@ -322,7 +322,7 @@
       ],
       "thresholds": [],
       "timeRegions": [],
-      "title": "Latency average [1m]",
+      "title": "Latency quartiles average [1m]",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -361,7 +361,7 @@
       },
       "fieldConfig": {
         "defaults": {
-          "unit": "percent"
+          "unit": "percentunit"
         },
         "overrides": []
       },
@@ -469,7 +469,7 @@
       },
       "yaxes": [
         {
-          "format": "percent",
+          "format": "percentunit",
           "logBase": 1,
           "show": true
         },
@@ -498,6 +498,6 @@
   "timezone": "browser",
   "title": "API Dashboard",
   "uid": "h80liTXGz",
-  "version": 9,
+  "version": 1,
   "weekStart": ""
 }
