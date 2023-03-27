@@ -16,16 +16,22 @@ variable "api_version" {
   description = "API tag version"
 }
 
-variable "api_health_path" {
+variable "api_liveness_path" {
   type        = string
   default     = "/api/v1/health/live"
-  description = "API health path"
+  description = "API liveness path"
 }
 
 variable "api_message" {
   type        = string
   default     = "Hello World From ACI with Terraform"
-  description = "API environment variable MESSAGE"
+  description = "API variable MESSAGE"
+}
+
+variable "api_environment" {
+  type        = string
+  default     = "production"
+  description = "API variable ENVIRONMENT"
 }
 
 variable "api_cpu" {

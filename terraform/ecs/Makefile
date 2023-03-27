@@ -15,6 +15,7 @@ REGISTRY_URL?=$(ACCOUNT_ID).dkr.ecr.$(AWS_DEFAULT_REGION).amazonaws.com
 API_NAME?=go-micro-api
 API_VERSION?=v1.0.0
 API_MESSAGE?=Hello World From ECS with Terraform
+API_ENVIRONMENT?=production
 
 all: help
 
@@ -93,6 +94,7 @@ plan: tf-validate tf-lint tf-fmt
 		-var api_name="$(API_NAME)" \
 		-var api_version="$(API_VERSION)" \
 		-var api_message="$(API_MESSAGE)" \
+		-var api_environment="$(API_ENVIRONMENT)" \
 		-input=false
 
 ## apply: Apply of Terraform
@@ -134,6 +136,7 @@ destroy:
 		-var api_name="$(API_NAME)" \
 		-var api_version="$(API_VERSION)" \
 		-var api_message="$(API_MESSAGE)" \
+		-var api_environment="$(API_ENVIRONMENT)" \
 		-auto-approve
 	make destroy-base-resources
 

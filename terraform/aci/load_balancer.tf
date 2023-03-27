@@ -39,7 +39,7 @@
 #   loadbalancer_id     = azurerm_lb.app_gw.id
 #   protocol            = "Http"
 #   port                = var.api_port
-#   request_path        = var.api_health_path
+#   request_path        = var.api_liveness_path
 #   interval_in_seconds = "15"
 #   number_of_probes    = "5" # The number of failed probe attempts
 #   depends_on = [

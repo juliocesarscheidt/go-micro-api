@@ -74,7 +74,7 @@ func init() {
 }
 
 func initTracer() (*sdktrace.TracerProvider, error) {
-	exporter, err := stdouttrace.New(stdouttrace.WithPrettyPrint())
+	exporter, err := stdouttrace.New()
 	if err != nil {
 		return nil, err
 	}

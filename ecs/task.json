@@ -12,6 +12,9 @@
     "environment": [{
       "name": "MESSAGE",
       "value": "Hello World From ECS"
+    }, {
+      "name": "ENVIRONMENT",
+      "value": "production"
     }],
     "environmentFiles": [],
     "mountPoints": [],

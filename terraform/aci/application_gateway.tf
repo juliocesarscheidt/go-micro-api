@@ -51,7 +51,7 @@ resource "azurerm_application_gateway" "app_gw" {
   probe {
     name                                      = "healthProbe"
     protocol                                  = "Http"
-    path                                      = var.api_health_path
+    path                                      = var.api_liveness_path
     interval                                  = 15
     timeout                                   = 10
     unhealthy_threshold                       = 5

@@ -36,7 +36,7 @@ resource "aws_alb_target_group" "container_tg" {
     timeout             = 10
     interval            = 15
     protocol            = "HTTP"
-    path                = var.api_health_path
+    path                = var.api_liveness_path
     port                = var.api_port
   }
   lifecycle {
