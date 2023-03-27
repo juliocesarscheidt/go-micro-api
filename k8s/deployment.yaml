@@ -73,6 +73,8 @@ spec:
             valueFrom:
               fieldRef:
                 fieldPath: status.podIP
+          - name: ENVIRONMENT
+            value: "production"
           resources:
             limits:
               memory: "32Mi"
@@ -118,11 +120,6 @@ spec:
     http:
       paths:
       - path: /api/v1/message
-        pathType: Exact
-        backend:
-          serviceName: go-micro-api
-          servicePort: 80
-      - path: /api/v1/configuration
         pathType: Exact
         backend:
           serviceName: go-micro-api

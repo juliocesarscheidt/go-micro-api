@@ -35,8 +35,6 @@ ingress:
       paths:
       - path: /api/v1/message
         pathType: Exact
-      - path: /api/v1/configuration
-        pathType: Exact
       - path: /api/v1/ping
         pathType: Exact
       - path: /api/v1/health/
@@ -60,6 +58,7 @@ livenessUrl: "/api/v1/health/live"
 readinessUrl: "/api/v1/health/ready"
 configmaps:
   MESSAGE: "Hello World From Kubernetes"
+  ENVIRONMENT: "production"
 secrets: {}
 autoscaling:
   enabled: false

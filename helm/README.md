@@ -12,6 +12,10 @@ helm install "$RELEASE_NAME" ./helm --debug --wait --timeout 15m
 
 helm upgrade -i "$RELEASE_NAME" ./helm --debug --wait --timeout 15m
 
+helm upgrade -i "$RELEASE_NAME" ./helm --debug --wait --timeout 15m \
+  --set configmaps.MESSAGE="$MESSAGE" \
+  --set configmaps.ENVIRONMENT="$ENVIRONMENT"
+
 # list releases
 helm ls
 
