@@ -37,14 +37,14 @@ docker container run -d \
   --name go-micro-api \
   --publish 9000:9000 \
   --cap-drop ALL \
-  --memory='16MB' \
+  --memory='32MB' \
   --cpus='0.1' \
   --env MESSAGE="Hello World From Docker" \
   --restart on-failure \
   juliocesarmidia/go-micro-api:v1.0.0
 
-# it uses in general about 12MB of memory
-docker container update --memory='12MB' go-micro-api
+# it uses in general about 16MB of memory
+docker container update --memory='16MB' go-micro-api
 
 docker container stats go-micro-api --no-stream
 docker container top go-micro-api
@@ -54,7 +54,6 @@ docker container inspect go-micro-api
 docker container logs -f --tail 100 go-micro-api
 
 curl --url 'http://localhost:9000/api/v1/message'
-curl -X PUT --data '{"message": "Hello World v2"}' --url 'http://localhost:9000/api/v1/configuration'
 curl --url 'http://localhost:9000/api/v1/ping'
 curl --url 'http://localhost:9000/api/v1/health/live'
 curl --url 'http://localhost:9000/api/v1/health/ready'
@@ -75,7 +74,6 @@ INGRESS_IP=$(kubectl get service -n ingress-nginx \
 echo "${INGRESS_IP} api.golang.local" >> /etc/hosts
 
 curl --url 'http://api.golang.local/api/v1/message'
-curl -X PUT --data '{"message": "Hello World v2"}' --url 'http://api.golang.local/api/v1/configuration'
 curl --url 'http://api.golang.local/api/v1/ping'
 curl --url 'http://api.golang.local/api/v1/health/live'
 curl --url 'http://api.golang.local/api/v1/health/ready'
@@ -93,8 +91,7 @@ kubectl delete -f k8s/deployment.yaml
 ## Testing API benchmark with siege
 
 ```bash
-siege --time 30S --concurrent 100 \
-  --benchmark 'http://localhost:9000/api/v1/message'
+siege --time 30S --concurrent 255 --benchmark 'http://localhost:9000/api/v1/message'
 ```
 
 ## Prometheus

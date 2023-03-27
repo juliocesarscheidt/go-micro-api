@@ -7,6 +7,7 @@ BUILDKIT_PROGRESS=plain
 API_NAME?=go-micro-api
 API_VERSION?=v1.0.0
 API_MESSAGE?=Hello World
+API_ENVIRONMENT?=production
 
 all: help
 
@@ -41,7 +42,7 @@ go-build:
 .PHONY: go-run
 go-run:
 	cd src/; \
-	MESSAGE="$(API_MESSAGE)" go run main.go
+	MESSAGE="$(API_MESSAGE)" ENVIRONMENT="$(API_ENVIRONMENT)" go run main.go
 
 ## docker-build: build the docker image
 .PHONY: docker-build
@@ -63,6 +64,7 @@ docker-run:
 		--memory='16MB' \
 		--cpus='0.1' \
 		--env MESSAGE="$(API_MESSAGE)" \
+		--env ENVIRONMENT="$(API_ENVIRONMENT)" \
 		--restart on-failure \
 		"juliocesarmidia/$(API_NAME):$(API_VERSION)"
 
@@ -84,7 +86,9 @@ docker-rm:
 ## helm-install: install the helm release
 .PHONY: helm-install
 helm-install:
-	helm upgrade -i "$(API_NAME)" ./helm --debug --wait --timeout 15m
+	helm upgrade -i "$(API_NAME)" ./helm --debug --wait --timeout 15m \
+		--set configmaps.MESSAGE="$(API_MESSAGE)" \
+		--set configmaps.ENVIRONMENT="$(API_ENVIRONMENT)"
 
 ## helm-uninstall: uninstall the helm release
 .PHONY: helm-uninstall

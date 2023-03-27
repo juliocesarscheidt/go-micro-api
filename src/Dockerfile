@@ -22,7 +22,8 @@ WORKDIR /
 
 COPY --from=builder --chown=65534:65534 /go/src/app/main .
 EXPOSE 9000
-
+# set default env
+ENV ENVIRONMENT=production
 # user nobody
 USER 65534
 

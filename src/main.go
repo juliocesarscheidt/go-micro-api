@@ -1,23 +1,32 @@
 package main
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"os/signal"
 	"strings"
-	"sync"
 	"syscall"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	logrus "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
+
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/exporters/stdout/stdouttrace"
+	"go.opentelemetry.io/otel/propagation"
+
+	"go.opentelemetry.io/otel/sdk/resource"
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
+	semconv "go.opentelemetry.io/otel/semconv/v1.17.0"
+	"go.opentelemetry.io/otel/trace"
 )
 
 var (
@@ -38,13 +47,9 @@ var (
 		},
 		[]string{"status", "method", "path"},
 	)
-	Message string
+	Message     string
+	Environment string
 )
-
-// ConfigurationDto is the content of request for configuration update
-type ConfigurationDto struct {
-	Message string `json:"message"`
-}
 
 func init() {
 	// logging config
@@ -61,9 +66,36 @@ func init() {
 	// prometheus config
 	prometheus.MustRegister(EndpointCounterMetrics)
 	prometheus.MustRegister(EndpointDurationMetrics)
-	// message variable from environment
+	// message and env variables from environment
 	Message = GetFromEnvOrDefaultAsString("MESSAGE", "Hello World")
 	Logger.Infof("Setting MESSAGE from ENV :: %s", Message)
+	Environment = GetFromEnvOrDefaultAsString("ENVIRONMENT", "development")
+	Logger.Infof("Setting ENVIRONMENT from ENV :: %s", Environment)
+}
+
+func initTracer() (*sdktrace.TracerProvider, error) {
+	exporter, err := stdouttrace.New(stdouttrace.WithPrettyPrint())
+	if err != nil {
+		return nil, err
+	}
+	tp := sdktrace.NewTracerProvider(
+		sdktrace.WithSampler(sdktrace.AlwaysSample()),
+		sdktrace.WithBatcher(exporter),
+		sdktrace.WithResource(resource.NewWithAttributes(
+			semconv.SchemaURL,
+			semconv.ServiceName("go-micro-api"),
+			semconv.ServiceVersion("v1.0.0"),
+			attribute.String("environment", Environment),
+		)),
+	)
+	otel.SetTracerProvider(tp)
+	otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{}))
+	return tp, err
+}
+
+// ConfigurationDto is the content of request for configuration update
+type ConfigurationDto struct {
+	Message string `json:"message"`
 }
 
 func PutRequestMetrics(path, method, status string) {
@@ -117,15 +149,23 @@ func HandleMessageRequestGet() http.HandlerFunc {
 	return func(writter http.ResponseWriter, req *http.Request) {
 		writter.Header().Set("Content-Type", "application/json")
 		statusCode := http.StatusOK
+		ctx := req.Context()
+		span := trace.SpanFromContext(ctx)
+		span.AddEvent("trace", trace.WithAttributes(
+			attribute.String("message", Message),
+		))
+		defer span.End()
 		defer func() {
 			LogRequestMetrics(statusCode, req.URL.Path, req.Host, req.Method, ExtractIpFromRemoteAddr(req.RemoteAddr), Message)
 		}()
 		if req.Method != "GET" {
 			statusCode = http.StatusMethodNotAllowed
+			span.SetStatus(codes.Error, "Method Not Allowed")
 			writter.WriteHeader(statusCode)
 			return
 		}
 		responseJSONBytes, _ := BuildJSONResponse(statusCode, Message)
+		span.SetStatus(codes.Ok, "Ok")
 		writter.WriteHeader(statusCode)
 		writter.Write(responseJSONBytes)
 	}
@@ -135,77 +175,53 @@ func HandleDefaultRequestGet(response interface{}) http.HandlerFunc {
 	return func(writter http.ResponseWriter, req *http.Request) {
 		writter.Header().Set("Content-Type", "application/json")
 		statusCode := http.StatusOK
+		ctx := req.Context()
+		span := trace.SpanFromContext(ctx)
+		span.AddEvent("trace", trace.WithAttributes(
+			attribute.String("message", response.(string)),
+		))
+		defer span.End()
 		defer func() {
 			LogRequestMetrics(statusCode, req.URL.Path, req.Host, req.Method, ExtractIpFromRemoteAddr(req.RemoteAddr), response)
 		}()
 		if req.Method != "GET" {
 			statusCode = http.StatusMethodNotAllowed
+			span.SetStatus(codes.Error, "Method Not Allowed")
 			writter.WriteHeader(statusCode)
 			return
 		}
 		responseJSONBytes, _ := BuildJSONResponse(statusCode, response)
-		writter.WriteHeader(statusCode)
-		writter.Write(responseJSONBytes)
-	}
-}
-
-func HandleConfigurationRequestPut() http.HandlerFunc {
-	return func(writter http.ResponseWriter, req *http.Request) {
-		writter.Header().Set("Content-Type", "application/json")
-		statusCode := http.StatusAccepted
-		defer func() {
-			LogRequestMetrics(statusCode, req.URL.Path, req.Host, req.Method, ExtractIpFromRemoteAddr(req.RemoteAddr), nil)
-		}()
-		if req.Method != "PUT" {
-			statusCode = http.StatusMethodNotAllowed
-			writter.WriteHeader(statusCode)
-			return
-		}
-		// max body size accepted is 1024 bytes (1 KB), otherwise it will return bad request
-		limitedReader := &io.LimitedReader{R: req.Body, N: 1024}
-		bodyCopy := new(bytes.Buffer)
-		_, err := io.Copy(bodyCopy, limitedReader)
-		if err != nil {
-			Logger.Errorf("Error :: %v", err)
-			statusCode = http.StatusInternalServerError
-			writter.WriteHeader(statusCode)
-			return
-		}
-		payload := ConfigurationDto{}
-		bodyData := bodyCopy.Bytes()
-		req.Body = ioutil.NopCloser(bytes.NewReader(bodyData))
-		json.Unmarshal(bodyData, &payload)
-		if payload.Message == "" {
-			statusCode = http.StatusBadRequest
-			writter.WriteHeader(statusCode)
-			return
-		}
-		// creating mutex
-		mutex := &sync.Mutex{}
-		mutex.Lock()
-		Message = strings.Trim(payload.Message, " ")
-		mutex.Unlock()
-		Logger.Infof("Setting MESSAGE from CONFIGURATION :: %s", Message)
-		responseJSONBytes, _ := BuildJSONResponse(statusCode, nil)
+		span.SetStatus(codes.Ok, "Ok")
 		writter.WriteHeader(statusCode)
 		writter.Write(responseJSONBytes)
 	}
 }
 
 func main() {
+	ctx := context.Background()
+	// create otel tracer
+	tp, err := initTracer()
+	if err != nil {
+		Logger.Fatal(err)
+	}
+	defer func() {
+		if err := tp.Shutdown(ctx); err != nil {
+			Logger.Printf("Error shutting down tracer provider: %v", err)
+		}
+	}()
 	// add routes
-	http.HandleFunc("/api/v1/message", HandleMessageRequestGet())
-	http.HandleFunc("/api/v1/configuration", HandleConfigurationRequestPut())
-	http.HandleFunc("/api/v1/ping", HandleDefaultRequestGet("Pong"))
-	http.HandleFunc("/api/v1/health/live", HandleDefaultRequestGet("Alive"))
-	http.HandleFunc("/api/v1/health/ready", HandleDefaultRequestGet("Ready"))
+	http.Handle("/api/v1/message", otelhttp.NewHandler(http.HandlerFunc(HandleMessageRequestGet()), "/api/v1/message"))
+	http.Handle("/api/v1/ping", otelhttp.NewHandler(http.HandlerFunc(HandleDefaultRequestGet("Pong")), "/api/v1/ping"))
+	http.Handle("/api/v1/health/live", otelhttp.NewHandler(http.HandlerFunc(HandleDefaultRequestGet("Alive")), "/api/v1/health/live"))
+	http.Handle("/api/v1/health/ready", otelhttp.NewHandler(http.HandlerFunc(HandleDefaultRequestGet("Ready")), "/api/v1/health/ready"))
+	// prometheus metrics
 	http.Handle("/metrics", promhttp.Handler())
 	// start listening inside other goroutine
 	go func() {
 		http.ListenAndServe(":9000", nil)
 	}()
 	// cancel on SIGTERM or SIGINT
-	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT)
+	ctx, cancel := signal.NotifyContext(ctx, syscall.SIGTERM, syscall.SIGINT)
 	defer cancel()
 	<-ctx.Done()
 }
