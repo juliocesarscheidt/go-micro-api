@@ -40,6 +40,7 @@ docker container run -d \
   --memory='32MB' \
   --cpus='0.1' \
   --env MESSAGE="Hello World From Docker" \
+  --env ENVIRONMENT="development" \
   --restart on-failure \
   juliocesarmidia/go-micro-api:v1.0.0
 

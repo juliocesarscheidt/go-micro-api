@@ -31,7 +31,7 @@ resource "azurerm_container_group" "container_api" {
     memory = var.api_memory
     liveness_probe {
       http_get {
-        path   = var.api_health_path
+        path   = var.api_liveness_path
         port   = var.api_port
         scheme = "Http"
       }
@@ -42,7 +42,8 @@ resource "azurerm_container_group" "container_api" {
       success_threshold     = 2
     }
     environment_variables = {
-      MESSAGE = var.api_message
+      MESSAGE     = var.api_message
+      ENVIRONMENT = var.api_environment
     }
     ports {
       port     = var.api_port

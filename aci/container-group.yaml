@@ -24,6 +24,8 @@ properties:
       environmentVariables:
       - name: MESSAGE
         value: "Hello World From ACI"
+      - name: ENVIRONMENT
+        value: "production"
       livenessProbe:
         httpGet:
           path: "/api/v1/health/live"

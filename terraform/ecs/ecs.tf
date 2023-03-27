@@ -32,6 +32,7 @@ resource "aws_ecs_task_definition" "container_task_def" {
       ],
       environment : [
         { "name" : "MESSAGE", "value" : var.api_message },
+        { "name" : "ENVIRONMENT", "value" : var.api_environment },
       ],
       cpu : tonumber(var.api_cpu),
       memory : tonumber(var.api_memory),

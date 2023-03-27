@@ -10,7 +10,8 @@ REGISTRY_URL?=$(REGISTRY_USERNAME).azurecr.io
 # api variables
 API_NAME?=go-micro-api
 API_VERSION?=v1.0.0
-API_MESSAGE?=Hello World From ACI with Terraform
+API_MESSAGE?=Hello World
+API_ENVIRONMENT?=production
 
 all: help
 
@@ -57,9 +58,9 @@ create-backend:
 	-@az storage container create --resource-group $(RESOURCE_GROUP) \
 		--account-name $(STORAGE_ACCOUNT_BACKEND) --name $(API_NAME) --public-access container
 
-## init: Initialization of Terraform
-.PHONY: init
-init: create-backend
+## tf-init: Initialization of Terraform
+.PHONY: tf-init
+tf-init: create-backend
 	terraform init -upgrade=true \
 		-backend-config="resource_group_name=$(RESOURCE_GROUP)" \
 		-backend-config="storage_account_name=$(STORAGE_ACCOUNT_BACKEND)" \
@@ -85,9 +86,9 @@ tf-lint:
 		-v $$(pwd):/data \
 		ghcr.io/terraform-linters/tflint
 
-## plan: Planning of Terraform
-.PHONY: plan
-plan: tf-validate tf-lint tf-fmt
+## tf-plan: Planning of Terraform
+.PHONY: tf-plan
+tf-plan: tf-validate tf-lint tf-fmt
 	export REGISTRY_PASSWORD="$$(az acr credential show --resource-group $(RESOURCE_GROUP) \
 		--name $(REGISTRY_USERNAME) --query passwords[0].value | sed 's/^"//; s/"$$//')"; \
 	terraform plan \
@@ -99,21 +100,22 @@ plan: tf-validate tf-lint tf-fmt
 		-var api_name="$(API_NAME)" \
 		-var api_version="$(API_VERSION)" \
 		-var api_message="$(API_MESSAGE)" \
+		-var api_environment="$(API_ENVIRONMENT)" \
 		-input=false
 
-## apply: Apply of Terraform
-.PHONY: apply
-apply:
+## tf-apply: Apply of Terraform
+.PHONY: tf-apply
+tf-apply:
 	terraform apply tfplan
 
-## output: Output of Terraform
-.PHONY: output
-output:
+## tf-output: Output of Terraform
+.PHONY: tf-output
+tf-output:
 	-@terraform output -raw public_ip
 
-## refresh: Refresh Terraform state
-.PHONY: refresh
-refresh:
+## tf-refresh: Refresh Terraform state
+.PHONY: tf-refresh
+tf-refresh:
 	terraform refresh -var-file=variables.tfvars
 
 ## logs: Logs from container instance
@@ -121,9 +123,9 @@ refresh:
 logs:
 	az container logs --resource-group $(RESOURCE_GROUP) --name $(API_NAME) --follow
 
-## destroy: Destroy Terraform resources and then Azure resources
-.PHONY: destroy
-destroy:
+## tf-destroy: Destroy Terraform resources and then Azure resources
+.PHONY: tf-destroy
+tf-destroy:
 	export REGISTRY_PASSWORD="$$(az acr credential show --resource-group $(RESOURCE_GROUP) \
 		--name $(REGISTRY_USERNAME) --query passwords[0].value | sed 's/^"//; s/"$$//')"; \
 	terraform destroy \
@@ -134,6 +136,7 @@ destroy:
 		-var api_name="$(API_NAME)" \
 		-var api_version="$(API_VERSION)" \
 		-var api_message="$(API_MESSAGE)" \
+		-var api_environment="$(API_ENVIRONMENT)" \
 		-auto-approve
 	make destroy-base-resources
 
