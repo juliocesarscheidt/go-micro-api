@@ -23,4 +23,4 @@ spec:
         command:
           - "sh"
           - "-c"
-          - "echo 'Starting pre-install hook' && sleep 15 && echo 'Finishing pre-install hook' exit 0"
+          - "echo 'Starting pre-install hook' && sleep 15 && echo 'Finishing pre-install hook' && exit 0"
