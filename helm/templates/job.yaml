@@ -1,0 +1,26 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "application.fullname" . }}
+  labels:
+    {{- include "application.labels" . | nindent 4 }}
+  # hook-weight - it will sort those hooks in ascending order
+  annotations:
+    "helm.sh/hook": pre-install
+    "helm.sh/hook-weight": "10"
+    "helm.sh/hook-delete-policy": hook-succeeded
+spec:
+  template:
+    metadata:
+      name: {{ include "application.fullname" . }}
+      labels:
+        {{- include "application.labels" . | nindent 8 }}
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: pre-install-job
+        image: "alpine:3.12.0"
+        command:
+          - "sh"
+          - "-c"
+          - "echo Starting pre-install hook && sleep 15"

@@ -23,6 +23,7 @@ services:
     hostname: go-micro-api
     environment:
       MESSAGE: ${MESSAGE:-Hello World From Docker Compose}
+      ENVIRONMENT: development
     build:
       context: ./src
     ports:
