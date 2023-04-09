@@ -210,8 +210,10 @@ func main() {
 		}
 	}()
 	// add routes
-	http.Handle("/api/v1/message", otelhttp.NewHandler(http.HandlerFunc(HandleMessageRequestGet()), "/api/v1/message"))
-	http.Handle("/api/v1/ping", otelhttp.NewHandler(http.HandlerFunc(HandleDefaultRequestGet("Pong")), "/api/v1/ping"))
+	http.HandleFunc("/api/v1/message", HandleMessageRequestGet())
+	http.HandleFunc("/api/v1/ping", HandleDefaultRequestGet("Pong"))
+	http.Handle("/api/v1/otel/message", otelhttp.NewHandler(http.HandlerFunc(HandleMessageRequestGet()), "/api/v1/otel/message"))
+	http.Handle("/api/v1/otel/ping", otelhttp.NewHandler(http.HandlerFunc(HandleDefaultRequestGet("Pong")), "/api/v1/otel/ping"))
 	// healthchecks
 	http.HandleFunc("/api/v1/health/live", HandleDefaultRequestGet("Alive"))
 	http.HandleFunc("/api/v1/health/ready", HandleDefaultRequestGet("Ready"))
