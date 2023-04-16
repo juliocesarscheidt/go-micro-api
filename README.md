@@ -55,10 +55,14 @@ docker container inspect go-micro-api
 docker container logs -f --tail 100 go-micro-api
 
 curl --url 'http://localhost:9000/api/v1/message'
+curl --url 'http://localhost:9000/api/v1/otel/message'
 curl --url 'http://localhost:9000/api/v1/ping'
+curl --url 'http://localhost:9000/api/v1/otel/ping'
 curl --url 'http://localhost:9000/api/v1/health/live'
 curl --url 'http://localhost:9000/api/v1/health/ready'
 curl --url 'http://localhost:9000/metrics'
+
+curl -o /dev/null -s -w "dnslookup: %{time_namelookup} seconds | connect: %{time_connect} seconds | pre transfer: %{time_pretransfer} seconds | start transfer: %{time_starttransfer} seconds | total: %{time_total} seconds | size: %{size_download} bytes\n" --url 'http://localhost:9000/api/v1/message'
 
 docker container rm -f go-micro-api
 ```

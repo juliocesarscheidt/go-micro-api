@@ -16,6 +16,12 @@ variable "api_version" {
   description = "API tag version"
 }
 
+variable "api_replicas_count" {
+  type        = number
+  default     = 1
+  description = "API replicas count"
+}
+
 variable "api_liveness_path" {
   type        = string
   default     = "/api/v1/health/live"
@@ -36,13 +42,13 @@ variable "api_environment" {
 
 variable "api_cpu" {
   type        = string
-  default     = "1"
+  default     = "0.5" # 0.5 vCPU
   description = "API CPU Amount"
 }
 
 variable "api_memory" {
   type        = string
-  default     = "1"
+  default     = "1" # 1GiB => 1024MiB
   description = "API Memory Amount"
 }
 

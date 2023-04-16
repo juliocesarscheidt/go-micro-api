@@ -11,7 +11,9 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/gorilla/mux"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/sirupsen/logrus"
 
@@ -31,7 +33,7 @@ import (
 
 var (
 	Logger                 = logrus.New()
-	EndpointCounterMetrics = prometheus.NewCounterVec(
+	EndpointCounterMetrics = promauto.NewCounterVec(
 		prometheus.CounterOpts{
 			Subsystem: "gomicroapi",
 			Name:      "http_request_count",
@@ -39,11 +41,13 @@ var (
 		},
 		[]string{"status", "method", "path"},
 	)
-	EndpointDurationMetrics = prometheus.NewHistogramVec(
+	EndpointDurationMetrics = promauto.NewHistogramVec(
 		prometheus.HistogramOpts{
 			Subsystem: "gomicroapi",
 			Name:      "http_request_duration_seconds",
 			Help:      "Latency of some endpoint requests in seconds",
+			Buckets:   prometheus.DefBuckets,
+			// Buckets: prometheus.LinearBuckets(0.01, 0.05, 10),
 		},
 		[]string{"status", "method", "path"},
 	)
@@ -63,9 +67,6 @@ func init() {
 	}
 	Logger.SetOutput(os.Stdout)
 	Logger.SetLevel(logrus.DebugLevel)
-	// prometheus config
-	prometheus.MustRegister(EndpointCounterMetrics)
-	prometheus.MustRegister(EndpointDurationMetrics)
 	// message and env variables from environment
 	Message = GetFromEnvOrDefaultAsString("MESSAGE", "Hello World")
 	Logger.Infof("Setting MESSAGE from ENV :: %s", Message)
@@ -93,21 +94,14 @@ func initTracer() (*sdktrace.TracerProvider, error) {
 	return tp, err
 }
 
-// ConfigurationDto is the content of request for configuration update
-type ConfigurationDto struct {
-	Message string `json:"message"`
+type StatusRecorder struct {
+	http.ResponseWriter
+	Status int
 }
 
-func PutRequestMetrics(path, method, status string) {
-	defer func() {
-		EndpointCounterMetrics.WithLabelValues(status, method, path).Inc()
-	}()
-	timer := prometheus.NewTimer(prometheus.ObserverFunc(func(_time float64) {
-		EndpointDurationMetrics.WithLabelValues(status, method, path).Observe(_time)
-	}))
-	defer func() {
-		timer.ObserveDuration()
-	}()
+func (r *StatusRecorder) WriteHeader(status int) {
+	r.Status = status
+	r.ResponseWriter.WriteHeader(status)
 }
 
 func GetFromEnvOrDefaultAsString(envParam, defaultValue string) string {
@@ -126,72 +120,92 @@ func ExtractIpFromRemoteAddr(remoteAddr string) string {
 	return ""
 }
 
-func LogRequestMetrics(statusCode int, path, host, method, ip string, message interface{}) {
+func BuildJSONResponse(statusCode int, data interface{}) ([]byte, error) {
+	var responseJson = make(map[string]interface{})
+	responseJson["statusCode"] = statusCode
+	responseJson["data"] = data
+	response, _ := json.Marshal(responseJson)
+	return []byte(string(response)), nil
+}
+
+func LogRequest(statusCode int, path, host, method, ip, message string) {
 	Logger.WithFields(logrus.Fields{
 		"status": statusCode,
 		"method": method,
 		"path":   path,
 		"host":   host,
 		"ip":     ip,
-	}).Infof(fmt.Sprint(message))
-	PutRequestMetrics(path, method, fmt.Sprint(statusCode))
+	}).Infof(message)
 }
 
-func BuildJSONResponse(statusCode int, message interface{}) ([]byte, error) {
-	var responseHTTP = make(map[string]interface{})
-	responseHTTP["statusCode"] = statusCode
-	responseHTTP["data"] = message
-	response, _ := json.Marshal(responseHTTP)
-	return []byte(string(response)), nil
+func prometheusMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(writter http.ResponseWriter, req *http.Request) {
+		// create a wrapper for writter
+		recorder := &StatusRecorder{
+			ResponseWriter: writter,
+			Status:         http.StatusOK,
+		}
+		// prometheus timer
+		timer := prometheus.NewTimer(prometheus.ObserverFunc(func(s float64) {
+			EndpointDurationMetrics.WithLabelValues(fmt.Sprint(recorder.Status), req.Method, req.URL.Path).Observe(s)
+			// ms := s * 1_000     // milliseconds - 10^(-3)
+			// us := s * 1_000_000 // microseconds - 10^(-6)
+			// fmt.Printf("time seconds :: %v\n", s)
+			// fmt.Printf("time milliseconds :: %v\n", ms)
+			// fmt.Printf("time microseconds :: %v\n", us)
+		}))
+		// call next route
+		next.ServeHTTP(recorder, req)
+		// retrieve status code
+		statusCode := recorder.Status
+		// increment counter
+		EndpointCounterMetrics.WithLabelValues(fmt.Sprint(statusCode), req.Method, req.URL.Path).Inc()
+		// increment timer
+		timer.ObserveDuration()
+	})
 }
 
 func HandleMessageRequestGet() http.HandlerFunc {
 	return func(writter http.ResponseWriter, req *http.Request) {
 		writter.Header().Set("Content-Type", "application/json")
+
 		statusCode := http.StatusOK
 		ctx := req.Context()
+		// log request
+		LogRequest(statusCode, req.URL.Path, req.Host, req.Method, ExtractIpFromRemoteAddr(req.RemoteAddr), Message)
+		// otel tracing
 		span := trace.SpanFromContext(ctx)
 		span.AddEvent("trace", trace.WithAttributes(
 			attribute.String("message", Message),
 		))
-		defer span.End()
-		defer func() {
-			LogRequestMetrics(statusCode, req.URL.Path, req.Host, req.Method, ExtractIpFromRemoteAddr(req.RemoteAddr), Message)
-		}()
-		if req.Method != "GET" {
-			statusCode = http.StatusMethodNotAllowed
-			span.SetStatus(codes.Error, "Method Not Allowed")
-			writter.WriteHeader(statusCode)
-			return
-		}
-		responseJSONBytes, _ := BuildJSONResponse(statusCode, Message)
 		span.SetStatus(codes.Ok, "Ok")
+		defer span.End()
+		// inject some sleep time to simulate a job being done
+		time.Sleep(time.Duration(100 * time.Millisecond))
+
+		responseJSONBytes, _ := BuildJSONResponse(statusCode, Message)
 		writter.WriteHeader(statusCode)
 		writter.Write(responseJSONBytes)
 	}
 }
 
-func HandleDefaultRequestGet(response interface{}) http.HandlerFunc {
+func HandleDefaultRequestGet(response string) http.HandlerFunc {
 	return func(writter http.ResponseWriter, req *http.Request) {
 		writter.Header().Set("Content-Type", "application/json")
+
 		statusCode := http.StatusOK
 		ctx := req.Context()
+		// log request
+		LogRequest(statusCode, req.URL.Path, req.Host, req.Method, ExtractIpFromRemoteAddr(req.RemoteAddr), response)
+		// otel tracing
 		span := trace.SpanFromContext(ctx)
 		span.AddEvent("trace", trace.WithAttributes(
-			attribute.String("message", response.(string)),
+			attribute.String("message", Message),
 		))
-		defer span.End()
-		defer func() {
-			LogRequestMetrics(statusCode, req.URL.Path, req.Host, req.Method, ExtractIpFromRemoteAddr(req.RemoteAddr), response)
-		}()
-		if req.Method != "GET" {
-			statusCode = http.StatusMethodNotAllowed
-			span.SetStatus(codes.Error, "Method Not Allowed")
-			writter.WriteHeader(statusCode)
-			return
-		}
-		responseJSONBytes, _ := BuildJSONResponse(statusCode, response)
 		span.SetStatus(codes.Ok, "Ok")
+		defer span.End()
+
+		responseJSONBytes, _ := BuildJSONResponse(statusCode, response)
 		writter.WriteHeader(statusCode)
 		writter.Write(responseJSONBytes)
 	}
@@ -209,19 +223,25 @@ func main() {
 			Logger.Printf("Error shutting down tracer provider: %v", err)
 		}
 	}()
-	// add routes
-	http.HandleFunc("/api/v1/message", HandleMessageRequestGet())
-	http.HandleFunc("/api/v1/ping", HandleDefaultRequestGet("Pong"))
-	http.Handle("/api/v1/otel/message", otelhttp.NewHandler(http.HandlerFunc(HandleMessageRequestGet()), "/api/v1/otel/message"))
-	http.Handle("/api/v1/otel/ping", otelhttp.NewHandler(http.HandlerFunc(HandleDefaultRequestGet("Pong")), "/api/v1/otel/ping"))
-	// healthchecks
-	http.HandleFunc("/api/v1/health/live", HandleDefaultRequestGet("Alive"))
-	http.HandleFunc("/api/v1/health/ready", HandleDefaultRequestGet("Ready"))
-	// prometheus metrics
-	http.Handle("/metrics", promhttp.Handler())
+	// create router
+	router := mux.NewRouter()
+	// add metrics route
+	router.Handle("/metrics", promhttp.Handler()).Methods("GET")
+	// add routes with otel tracing
+	router.Handle("/api/v1/otel/message", otelhttp.NewHandler(http.HandlerFunc(
+		HandleMessageRequestGet()), "/api/v1/otel/message")).Methods("GET")
+	router.Handle("/api/v1/otel/ping", otelhttp.NewHandler(http.HandlerFunc(
+		HandleDefaultRequestGet("Pong")), "/api/v1/otel/ping")).Methods("GET")
+	// add routes with prometheus metrics
+	subRouterProm := router.PathPrefix("/api/v1").Subrouter()
+	subRouterProm.Use(prometheusMiddleware)
+	subRouterProm.HandleFunc("/message", HandleMessageRequestGet()).Methods("GET")
+	subRouterProm.HandleFunc("/ping", HandleDefaultRequestGet("Pong")).Methods("GET")
+	subRouterProm.HandleFunc("/health/live", HandleDefaultRequestGet("Alive")).Methods("GET")
+	subRouterProm.HandleFunc("/health/ready", HandleDefaultRequestGet("Ready")).Methods("GET")
 	// start listening inside other goroutine
 	go func() {
-		http.ListenAndServe(":9000", nil)
+		http.ListenAndServe(":9000", router)
 	}()
 	// cancel on SIGTERM or SIGINT
 	ctx, cancel := signal.NotifyContext(ctx, syscall.SIGTERM, syscall.SIGINT)

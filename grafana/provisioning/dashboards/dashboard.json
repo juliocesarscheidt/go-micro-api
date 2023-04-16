@@ -73,7 +73,7 @@
           },
           "editorMode": "code",
           "exemplar": true,
-          "expr": "increase(gomicroapi_http_request_duration_seconds_count{uri!=\"/metrics\"}[1m])",
+          "expr": "increase(gomicroapi_http_request_duration_seconds_count{path!=\"/metrics\"}[1m])",
           "interval": "",
           "legendFormat": "{{path}} {{method}} {{status}}",
           "range": true,
@@ -196,7 +196,7 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "sum(increase(gomicroapi_http_request_duration_seconds_sum{path!=\"/metrics\"}[1m])) by (job)\r\n  /\r\nsum(increase(gomicroapi_http_request_duration_seconds_count{path!=\"/metrics\"}[1m])) by (job)",
+          "expr": "sum(increase(gomicroapi_http_request_duration_seconds_sum{path!=\"/metrics\"}[1m])) by (job)\r\n  /\r\nsum(increase(gomicroapi_http_request_duration_seconds_count{path!=\"/metrics\"}[1m])) by (job)\r\n",
           "instant": false,
           "legendFormat": "{{path}} {{method}} {{status}}",
           "range": true,
@@ -484,6 +484,7 @@
       }
     }
   ],
+  "refresh": false,
   "schemaVersion": 37,
   "style": "dark",
   "tags": [],
@@ -491,7 +492,7 @@
     "list": []
   },
   "time": {
-    "from": "now-1h",
+    "from": "now-5m",
     "to": "now"
   },
   "timepicker": {},

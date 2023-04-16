@@ -31,7 +31,7 @@ resource "azurerm_application_gateway" "app_gw" {
   }
   backend_address_pool {
     name         = local.backend_address_pool_name
-    ip_addresses = [azurerm_container_group.container_api.ip_address]
+    ip_addresses = tolist(azurerm_container_group.container_api[*].ip_address)
   }
   backend_http_settings {
     name                  = local.http_setting_name
@@ -39,7 +39,7 @@ resource "azurerm_application_gateway" "app_gw" {
     path                  = "/"
     port                  = var.api_port
     protocol              = "Http"
-    request_timeout       = 10
+    request_timeout       = 60
     probe_name            = "healthProbe"
   }
   http_listener {

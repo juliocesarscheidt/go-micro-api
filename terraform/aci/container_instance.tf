@@ -1,5 +1,6 @@
 resource "azurerm_container_group" "container_api" {
-  name                = var.api_name
+  count               = var.api_replicas_count
+  name                = "${var.api_name}-${count.index}"
   location            = data.azurerm_resource_group.resource_group.location
   resource_group_name = data.azurerm_resource_group.resource_group.name
   ip_address_type     = "Private"
@@ -50,7 +51,10 @@ resource "azurerm_container_group" "container_api" {
       protocol = "TCP"
     }
   }
-  tags = {}
+  tags = {
+    "Name"    = "${var.api_name}-${count.index}"
+    "Cluster" = var.api_name
+  }
   depends_on = [
     azurerm_subnet.subnet_b,
     azurerm_log_analytics_workspace.log_analytics_workspace,
