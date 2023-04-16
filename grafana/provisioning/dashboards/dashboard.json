@@ -73,7 +73,7 @@
           },
           "editorMode": "code",
           "exemplar": true,
-          "expr": "increase(gomicroapi_http_request_duration_seconds_count{path!=\"/metrics\"}[1m])",
+          "expr": "increase(gomicroapi_http_request_duration_seconds_count{path=\"/api/v1/message\"}[1m])",
           "interval": "",
           "legendFormat": "{{path}} {{method}} {{status}}",
           "range": true,
@@ -196,7 +196,7 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "sum(increase(gomicroapi_http_request_duration_seconds_sum{path!=\"/metrics\"}[1m])) by (job)\r\n  /\r\nsum(increase(gomicroapi_http_request_duration_seconds_count{path!=\"/metrics\"}[1m])) by (job)\r\n",
+          "expr": "rate(gomicroapi_http_request_duration_seconds_sum{path=\"/api/v1/message\"}[1m])\r\n  /\r\nrate(gomicroapi_http_request_duration_seconds_count{path=\"/api/v1/message\"}[1m])",
           "instant": false,
           "legendFormat": "{{path}} {{method}} {{status}}",
           "range": true,
@@ -264,7 +264,7 @@
           },
           "editorMode": "code",
           "exemplar": true,
-          "expr": "histogram_quantile(0.99, sum(increase(gomicroapi_http_request_duration_seconds_bucket{path!=\"/metrics\"}[1m])) by (le))",
+          "expr": "histogram_quantile(0.99, rate(gomicroapi_http_request_duration_seconds_bucket{path=\"/api/v1/message\"}[1m]))\r\n",
           "format": "time_series",
           "interval": "",
           "legendFormat": "99 %",
@@ -277,7 +277,7 @@
             "uid": "PBFA97CFB590B2093"
           },
           "editorMode": "code",
-          "expr": "histogram_quantile(0.90, sum(increase(gomicroapi_http_request_duration_seconds_bucket{path!=\"/metrics\"}[1m])) by (le))",
+          "expr": "histogram_quantile(0.90, rate(gomicroapi_http_request_duration_seconds_bucket{path=\"/api/v1/message\"}[1m]))",
           "hide": false,
           "legendFormat": "90 %",
           "range": true,
@@ -289,7 +289,7 @@
             "uid": "PBFA97CFB590B2093"
           },
           "editorMode": "code",
-          "expr": "histogram_quantile(0.75, sum(increase(gomicroapi_http_request_duration_seconds_bucket{path!=\"/metrics\"}[1m])) by (le))",
+          "expr": "histogram_quantile(0.75, rate(gomicroapi_http_request_duration_seconds_bucket{path=\"/api/v1/message\"}[1m]))",
           "hide": false,
           "legendFormat": "75 %",
           "range": true,
@@ -301,7 +301,7 @@
             "uid": "PBFA97CFB590B2093"
           },
           "editorMode": "code",
-          "expr": "histogram_quantile(0.50, sum(increase(gomicroapi_http_request_duration_seconds_bucket{path!=\"/metrics\"}[1m])) by (le))",
+          "expr": "histogram_quantile(0.50, rate(gomicroapi_http_request_duration_seconds_bucket{path=\"/api/v1/message\"}[1m]))",
           "hide": false,
           "legendFormat": "50 %",
           "range": true,
@@ -313,7 +313,7 @@
             "uid": "PBFA97CFB590B2093"
           },
           "editorMode": "code",
-          "expr": "histogram_quantile(0.25, sum(increase(gomicroapi_http_request_duration_seconds_bucket{path!=\"/metrics\"}[1m])) by (le))",
+          "expr": "histogram_quantile(0.25, rate(gomicroapi_http_request_duration_seconds_bucket{path=\"/api/v1/message\"}[1m]))",
           "hide": false,
           "legendFormat": "25 %",
           "range": true,
@@ -407,7 +407,7 @@
           },
           "editorMode": "code",
           "exemplar": true,
-          "expr": "sum(increase(gomicroapi_http_request_duration_seconds_count{path!=\"/metrics\",status=\"500\"}[1m])) / sum(increase(gomicroapi_http_request_duration_seconds_count{path!=\"/metrics\"}[1m]))",
+          "expr": "sum(increase(gomicroapi_http_request_duration_seconds_count{path=\"/api/v1/message\",status=\"500\"}[1m])) / sum(increase(gomicroapi_http_request_duration_seconds_count{path=\"/api/v1/message\"}[1m]))",
           "format": "time_series",
           "interval": "",
           "legendFormat": "500",
@@ -420,7 +420,7 @@
             "uid": "PBFA97CFB590B2093"
           },
           "editorMode": "code",
-          "expr": "sum(increase(gomicroapi_http_request_duration_seconds_count{path!=\"/metrics\",status=\"400\"}[1m])) / sum(increase(gomicroapi_http_request_duration_seconds_count{path!=\"/metrics\"}[1m]))",
+          "expr": "sum(increase(gomicroapi_http_request_duration_seconds_count{path=\"/api/v1/message\",status=\"400\"}[1m])) / sum(increase(gomicroapi_http_request_duration_seconds_count{path=\"/api/v1/message\"}[1m]))",
           "hide": false,
           "legendFormat": "400",
           "range": true,
@@ -432,7 +432,7 @@
             "uid": "PBFA97CFB590B2093"
           },
           "editorMode": "code",
-          "expr": "sum(increase(gomicroapi_http_request_duration_seconds_count{path!=\"/metrics\",status=\"405\"}[1m])) / sum(increase(gomicroapi_http_request_duration_seconds_count{path!=\"/metrics\"}[1m]))",
+          "expr": "sum(increase(gomicroapi_http_request_duration_seconds_count{path=\"/api/v1/message\",status=\"405\"}[1m])) / sum(increase(gomicroapi_http_request_duration_seconds_count{path=\"/api/v1/message\"}[1m]))",
           "hide": false,
           "interval": "",
           "legendFormat": "405",
@@ -445,7 +445,7 @@
             "uid": "PBFA97CFB590B2093"
           },
           "editorMode": "code",
-          "expr": "sum(increase(gomicroapi_http_request_duration_seconds_count{path!=\"/metrics\",status=\"404\"}[1m])) / sum(increase(gomicroapi_http_request_duration_seconds_count{path!=\"/metrics\"}[1m]))",
+          "expr": "sum(increase(gomicroapi_http_request_duration_seconds_count{path=\"/api/v1/message\",status=\"404\"}[1m])) / sum(increase(gomicroapi_http_request_duration_seconds_count{path=\"/api/v1/message\"}[1m]))",
           "hide": false,
           "interval": "",
           "legendFormat": "404",
@@ -499,6 +499,6 @@
   "timezone": "browser",
   "title": "API Dashboard",
   "uid": "h80liTXGz",
-  "version": 1,
+  "version": 3,
   "weekStart": ""
 }
