@@ -4,9 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	// "math"
 	"net/http"
 	"os"
 	"os/signal"
+	// "runtime"
 	"strings"
 	"syscall"
 	"time"
@@ -137,6 +139,13 @@ func LogRequest(statusCode int, path, host, method, ip, message string) {
 		"host":   host,
 		"ip":     ip,
 	}).Infof(message)
+
+	// var memStats runtime.MemStats
+	// runtime.ReadMemStats(&memStats)
+	// memAllocated := memStats.Alloc
+	// memObtainedFromSys := memStats.Sys
+	// fmt.Printf("Memory Allocated: %.2f MBs | %.2f bytes\n", float64(memAllocated)/math.Pow(10, 6), float64(memAllocated))
+	// fmt.Printf("Memory Obtained From Sys: %.2f MBs | %.2f bytes\n", float64(memObtainedFromSys)/math.Pow(10, 6), float64(memObtainedFromSys))
 }
 
 func prometheusMiddleware(next http.Handler) http.Handler {
