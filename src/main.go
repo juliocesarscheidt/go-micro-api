@@ -222,8 +222,6 @@ func HandleDefaultRequestGet(response string) http.HandlerFunc {
 }
 
 func main() {
-	// runtime.GOMAXPROCS(1)
-
 	ctx := context.Background()
 	// create otel tracer
 	tp, err := initTracer()
@@ -235,7 +233,6 @@ func main() {
 			Logger.Printf("Error shutting down tracer provider: %v", err)
 		}
 	}()
-
 	// create router
 	router := mux.NewRouter()
 	// add metrics route
