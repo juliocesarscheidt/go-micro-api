@@ -3,7 +3,7 @@ resource "aws_lb" "application_lb" {
   name                       = "${var.api_name}-alb"
   internal                   = false
   enable_deletion_protection = false
-  idle_timeout               = 300
+  idle_timeout               = 60
   subnets                    = aws_subnet.public_subnet[*].id
   security_groups            = [aws_security_group.alb_sg.id]
   tags = {
@@ -27,7 +27,7 @@ resource "aws_alb_target_group" "container_tg" {
   port                          = var.api_port
   protocol                      = "HTTP"
   vpc_id                        = aws_vpc.vpc_0.id
-  load_balancing_algorithm_type = "least_outstanding_requests"
+  load_balancing_algorithm_type = "round_robin" # round_robin or least_outstanding_requests
   deregistration_delay          = 30
   target_type                   = "ip"
   health_check {

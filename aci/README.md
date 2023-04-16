@@ -150,16 +150,16 @@ az network application-gateway http-settings update \
 
 ```bash
 # show public ip
-APP_GW_IP=$(az network public-ip show \
+LB_IP=$(az network public-ip show \
   --resource-group $RESOURCE_GROUP \
   --name $APP_GW_IP_NAME \
   --query [ipAddress] --output tsv)
 
-curl --url "http://${APP_GW_IP}/api/v1/message"
+curl --url "http://${LB_IP}/api/v1/message"
 # {"data":"Hello World From ACI","statusCode":200}
 
 # 5 minutes
-siege --time 300s --concurrent 255 --benchmark "http://${APP_GW_IP}/api/v1/message"
+siege --time 300s --concurrent 255 --benchmark "http://${LB_IP}/api/v1/message"
 
 
 # execute commands on container

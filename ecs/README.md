@@ -243,13 +243,13 @@ aws ecs list-services --region $REGION --cluster $ECS_CLUSTER
 
 ```bash
 # check load balancer DNS
-ALB_DNS=$(aws elbv2 describe-load-balancers --region $REGION --name $ALB_NAME --query 'LoadBalancers[0].DNSName' --output text)
+LB_DNS=$(aws elbv2 describe-load-balancers --region $REGION --name $ALB_NAME --query 'LoadBalancers[0].DNSName' --output text)
 
-curl --url "http://${ALB_DNS}/api/v1/message"
+curl --url "http://${LB_DNS}/api/v1/message"
 # {"data":"Hello World From ECS","statusCode":200}
 
 # 5 minutes
-siege --time 300s --concurrent 255 --benchmark "http://${ALB_DNS}/api/v1/message"
+siege --time 300s --concurrent 255 --benchmark "http://${LB_DNS}/api/v1/message"
 
 
 # enable execution of commands, it requires a special policy and task role
