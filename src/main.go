@@ -12,6 +12,9 @@ import (
 	"strconv"
 	"strings"
 	// "syscall"
+	// _ "net/http/pprof"
+	// "runtime/debug"
+	// "runtime/pprof"
 	"time"
 
 	"github.com/gorilla/mux"
@@ -119,6 +122,8 @@ func LogRequest(statusCode int, path, host, method, ip, message string) {
 		"ip":     ip,
 	}).Infof(message)
 
+	// debug.PrintStack()
+
 	// var memStats runtime.MemStats
 	// runtime.ReadMemStats(&memStats)
 	// oneMillion := math.Pow(10, 6)
@@ -160,6 +165,10 @@ func HandleMessageRequestGet() http.HandlerFunc {
 	return func(writter http.ResponseWriter, req *http.Request) {
 		writter.Header().Set("Content-Type", "application/json")
 
+		// f, _ := os.Create("HandleMessageRequestGet.prof")
+		// pprof.StartCPUProfile(f)
+		// defer pprof.StopCPUProfile()
+
 		statusCode := http.StatusOK
 		// log request in other goroutine
 		go LogRequest(statusCode, req.URL.Path, req.Host, req.Method, ExtractIpFromRemoteAddr(req.RemoteAddr), Message)
@@ -176,6 +185,10 @@ func HandleMessageRequestGet() http.HandlerFunc {
 func HandleDefaultRequestGet(response string) http.HandlerFunc {
 	return func(writter http.ResponseWriter, req *http.Request) {
 		writter.Header().Set("Content-Type", "application/json")
+
+		// f, _ := os.Create("HandleDefaultRequestGet.prof")
+		// pprof.StartCPUProfile(f)
+		// defer pprof.StopCPUProfile()
 
 		statusCode := http.StatusOK
 		// log request in other goroutine

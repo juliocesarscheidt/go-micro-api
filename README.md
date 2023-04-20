@@ -98,7 +98,7 @@ kubectl delete -f k8s/deployment.yaml
 ```bash
 siege --time 30S --concurrent 255 --benchmark 'http://localhost:9000/api/v1/message'
 
-wrk --threads 1 --connections 255 --duration 30s --timeout 1s 'http://localhost:9000/api/v1/message' --latency
+wrk --threads $(nproc) --connections 255 --duration 30s --timeout 1s 'http://localhost:9000/api/v1/message' --latency
 
 artillery run load-tests/api-message-load-test.yml --output load-tests/api-message.json
 artillery report load-tests/api-message.json
