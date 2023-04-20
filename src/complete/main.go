@@ -1,17 +1,17 @@
-package complete
+package main
 
 import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"math"
+	// "math"
 	"net/http"
 	"os"
-	"os/signal"
+	// "os/signal"
 	"runtime"
 	"strconv"
 	"strings"
-	"syscall"
+	// "syscall"
 	"time"
 
 	"github.com/gorilla/mux"
@@ -237,6 +237,7 @@ func main() {
 	fmt.Printf("Goroutine ID :: %v\n", GoroutineId())
 	fmt.Printf("Num Goroutines :: %v\n", runtime.NumGoroutine())
 
+	ctx := context.Background()
 	// create otel tracer
 	tp, err := initTracer()
 	if err != nil {

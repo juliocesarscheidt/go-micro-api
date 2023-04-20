@@ -2,3 +2,4 @@ Makefile
 *.yaml
 Docker*
 *.md
+complete/
