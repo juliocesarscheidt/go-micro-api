@@ -158,9 +158,9 @@ LB_IP=$(az network public-ip show \
 curl --url "http://${LB_IP}/api/v1/message"
 # {"data":"Hello World From ACI","statusCode":200}
 
-# 5 minutes
-siege --time 300s --concurrent 255 --benchmark "http://${LB_IP}/api/v1/message"
-wrk --threads $(nproc) --connections 255 --duration 300s --timeout 1s "http://${LB_IP}/api/v1/message" --latency
+# 1 minute
+siege --time 60s --concurrent 50 --benchmark "http://${LB_IP}/api/v1/message"
+wrk --threads 1 --connections 50 --duration 60s --timeout 1s "http://${LB_IP}/api/v1/message" --latency
 
 
 # execute commands on container

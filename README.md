@@ -37,8 +37,8 @@ docker container run -d \
   --name go-micro-api \
   --publish 9000:9000 \
   --cap-drop ALL \
-  --memory='32MB' \
-  --cpus='1' \
+  --memory='256MB' \
+  --cpus='0.5' \
   --env MESSAGE="Hello World From Docker" \
   --env ENVIRONMENT="development" \
   --restart on-failure \
