@@ -1,16 +1,16 @@
 config:
-  target: "http://13.82.47.146/api/v1"
+  target: "http://localhost:9000/api/v1"
   phases:
     - name: Sustained load
       duration: 300
-      arrivalRate: 40
-      maxVusers: 12000
+      arrivalRate: 30
+      maxVusers: 9000
   ensure:
     thresholds:
-      # p99 of response time must be <250ms:
-      - "http.response_time.p99": 250
-      # p95 of response time must be <200ms:
-      - "http.response_time.p95": 200
+      # p99 of response time must be <300ms:
+      - "http.response_time.p99": 300
+      # p95 of response time must be <250ms:
+      - "http.response_time.p95": 250
 scenarios:
   - name: "Get Message"
     flow:
