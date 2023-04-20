@@ -234,8 +234,8 @@ func HandleDefaultRequestGet(response string) http.HandlerFunc {
 }
 
 func main() {
-	fmt.Printf("Goroutine ID :: %v\n", GoroutineId())
-	fmt.Printf("Num Goroutines :: %v\n", runtime.NumGoroutine())
+	Logger.Infof("Goroutine ID :: %d", GoroutineId())
+	Logger.Infof("Num Goroutines :: %d", runtime.NumGoroutine())
 
 	ctx := context.Background()
 	// create otel tracer
