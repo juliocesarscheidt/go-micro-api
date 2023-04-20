@@ -61,8 +61,8 @@ docker-run:
 		--name $(API_NAME) \
 		--publish 9000:9000 \
 		--cap-drop ALL \
-		--memory='16MB' \
-		--cpus='0.1' \
+		--memory='32MB' \
+		--cpus='1' \
 		--env MESSAGE="$(API_MESSAGE)" \
 		--env ENVIRONMENT="$(API_ENVIRONMENT)" \
 		--restart on-failure \

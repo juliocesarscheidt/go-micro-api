@@ -38,14 +38,14 @@ docker container run -d \
   --publish 9000:9000 \
   --cap-drop ALL \
   --memory='32MB' \
-  --cpus='0.1' \
+  --cpus='1' \
   --env MESSAGE="Hello World From Docker" \
   --env ENVIRONMENT="development" \
   --restart on-failure \
   juliocesarmidia/go-micro-api:v1.0.0
 
-# it uses in general about 16MB of memory
-docker container update --memory='16MB' go-micro-api
+# it uses at maximum about 32MB of memory
+docker container update --memory='32MB' go-micro-api
 
 docker container stats go-micro-api --no-stream
 docker container top go-micro-api
@@ -93,10 +93,15 @@ kubectl logs -f \
 kubectl delete -f k8s/deployment.yaml
 ```
 
-## Testing API benchmark with siege
+## Testing API benchmark with siege, wrk or artillery
 
 ```bash
 siege --time 30S --concurrent 255 --benchmark 'http://localhost:9000/api/v1/message'
+
+wrk --threads 1 --connections 255 --duration 30s --timeout 1s 'http://localhost:9000/api/v1/message' --latency
+
+artillery run load-tests/api-message-load-test.yml --output load-tests/api-message.json
+artillery report load-tests/api-message.json
 ```
 
 ## Prometheus

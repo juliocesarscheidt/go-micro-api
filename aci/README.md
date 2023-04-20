@@ -160,6 +160,7 @@ curl --url "http://${LB_IP}/api/v1/message"
 
 # 5 minutes
 siege --time 300s --concurrent 255 --benchmark "http://${LB_IP}/api/v1/message"
+wrk --connections 255 --duration 300s --timeout 1s "http://${LB_IP}/api/v1/message" --latency
 
 
 # execute commands on container

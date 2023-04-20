@@ -250,6 +250,7 @@ curl --url "http://${LB_DNS}/api/v1/message"
 
 # 5 minutes
 siege --time 300s --concurrent 255 --benchmark "http://${LB_DNS}/api/v1/message"
+wrk --connections 255 --duration 300s --timeout 1s "http://${LB_DNS}/api/v1/message" --latency
 
 
 # enable execution of commands, it requires a special policy and task role

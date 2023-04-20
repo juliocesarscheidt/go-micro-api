@@ -181,8 +181,8 @@ func HandleMessageRequestGet() http.HandlerFunc {
 
 		statusCode := http.StatusOK
 		ctx := req.Context()
-		// log request
-		LogRequest(statusCode, req.URL.Path, req.Host, req.Method, ExtractIpFromRemoteAddr(req.RemoteAddr), Message)
+		// log request in other goroutine
+		go LogRequest(statusCode, req.URL.Path, req.Host, req.Method, ExtractIpFromRemoteAddr(req.RemoteAddr), Message)
 		// otel tracing
 		span := trace.SpanFromContext(ctx)
 		span.AddEvent("trace", trace.WithAttributes(
@@ -205,8 +205,8 @@ func HandleDefaultRequestGet(response string) http.HandlerFunc {
 
 		statusCode := http.StatusOK
 		ctx := req.Context()
-		// log request
-		LogRequest(statusCode, req.URL.Path, req.Host, req.Method, ExtractIpFromRemoteAddr(req.RemoteAddr), response)
+		// log request in other goroutine
+		go LogRequest(statusCode, req.URL.Path, req.Host, req.Method, ExtractIpFromRemoteAddr(req.RemoteAddr), response)
 		// otel tracing
 		span := trace.SpanFromContext(ctx)
 		span.AddEvent("trace", trace.WithAttributes(
