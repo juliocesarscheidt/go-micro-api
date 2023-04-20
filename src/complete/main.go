@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	// "math"
+	"math"
 	"net/http"
 	"os"
 	// "os/signal"
@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"strings"
 	// "syscall"
+	"runtime/debug"
 	"time"
 
 	"github.com/gorilla/mux"
@@ -149,14 +150,16 @@ func LogRequest(statusCode int, path, host, method, ip, message string) {
 		"ip":     ip,
 	}).Infof(message)
 
-	// var memStats runtime.MemStats
-	// runtime.ReadMemStats(&memStats)
-	// oneMillion := math.Pow(10, 6)
-	// fmt.Printf("Memory Allocated: %.2f MBs\n", float64(memStats.Alloc)/oneMillion)
-	// fmt.Printf("Memory Obtained From Sys: %.2f MBs\n", float64(memStats.Sys)/oneMillion)
+	debug.PrintStack()
 
-	// fmt.Printf("Goroutine ID :: %v\n", GoroutineId())
-	// fmt.Printf("Num Goroutines :: %v\n", runtime.NumGoroutine())
+	fmt.Printf("Goroutine ID :: %v\n", GoroutineId())
+	fmt.Printf("Num Goroutines :: %v\n", runtime.NumGoroutine())
+
+	var memStats runtime.MemStats
+	runtime.ReadMemStats(&memStats)
+	oneMillion := math.Pow(10, 6)
+	fmt.Printf("Memory Allocated: %.2f MBs | %.2f bytes\n", float64(memStats.Alloc)/oneMillion, float64(memStats.Alloc))
+	fmt.Printf("Memory Obtained From Sys: %.2f MBs | %.2f bytes\n", float64(memStats.Sys)/oneMillion, float64(memStats.Sys))
 }
 
 func prometheusMiddleware(next http.Handler) http.Handler {

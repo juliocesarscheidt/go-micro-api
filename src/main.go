@@ -12,9 +12,7 @@ import (
 	"strconv"
 	"strings"
 	// "syscall"
-	// _ "net/http/pprof"
 	// "runtime/debug"
-	// "runtime/pprof"
 	"time"
 
 	"github.com/gorilla/mux"
@@ -124,14 +122,14 @@ func LogRequest(statusCode int, path, host, method, ip, message string) {
 
 	// debug.PrintStack()
 
+	// fmt.Printf("Goroutine ID :: %v\n", GoroutineId())
+	// fmt.Printf("Num Goroutines :: %v\n", runtime.NumGoroutine())
+
 	// var memStats runtime.MemStats
 	// runtime.ReadMemStats(&memStats)
 	// oneMillion := math.Pow(10, 6)
-	// fmt.Printf("Memory Allocated: %.2f MBs\n", float64(memStats.Alloc)/oneMillion)
-	// fmt.Printf("Memory Obtained From Sys: %.2f MBs\n", float64(memStats.Sys)/oneMillion)
-
-	// fmt.Printf("Goroutine ID :: %v\n", GoroutineId())
-	// fmt.Printf("Num Goroutines :: %v\n", runtime.NumGoroutine())
+	// fmt.Printf("Memory Allocated: %.2f MBs | %.2f bytes\n", float64(memStats.Alloc)/oneMillion, float64(memStats.Alloc))
+	// fmt.Printf("Memory Obtained From Sys: %.2f MBs | %.2f bytes\n", float64(memStats.Sys)/oneMillion, float64(memStats.Sys))
 }
 
 func prometheusMiddleware(next http.Handler) http.Handler {
@@ -165,10 +163,6 @@ func HandleMessageRequestGet() http.HandlerFunc {
 	return func(writter http.ResponseWriter, req *http.Request) {
 		writter.Header().Set("Content-Type", "application/json")
 
-		// f, _ := os.Create("HandleMessageRequestGet.prof")
-		// pprof.StartCPUProfile(f)
-		// defer pprof.StopCPUProfile()
-
 		statusCode := http.StatusOK
 		// log request in other goroutine
 		go LogRequest(statusCode, req.URL.Path, req.Host, req.Method, ExtractIpFromRemoteAddr(req.RemoteAddr), Message)
@@ -185,10 +179,6 @@ func HandleMessageRequestGet() http.HandlerFunc {
 func HandleDefaultRequestGet(response string) http.HandlerFunc {
 	return func(writter http.ResponseWriter, req *http.Request) {
 		writter.Header().Set("Content-Type", "application/json")
-
-		// f, _ := os.Create("HandleDefaultRequestGet.prof")
-		// pprof.StartCPUProfile(f)
-		// defer pprof.StopCPUProfile()
 
 		statusCode := http.StatusOK
 		// log request in other goroutine
