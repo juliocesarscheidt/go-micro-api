@@ -1,17 +1,17 @@
-package main
+package complete
 
 import (
-	// "context"
+	"context"
 	"encoding/json"
 	"fmt"
-	// "math"
+	"math"
 	"net/http"
 	"os"
-	// "os/signal"
+	"os/signal"
 	"runtime"
 	"strconv"
 	"strings"
-	// "syscall"
+	"syscall"
 	"time"
 
 	"github.com/gorilla/mux"
@@ -19,16 +19,16 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/sirupsen/logrus"
-	// "go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
-	// "go.opentelemetry.io/otel"
-	// "go.opentelemetry.io/otel/attribute"
-	// "go.opentelemetry.io/otel/codes"
-	// "go.opentelemetry.io/otel/exporters/stdout/stdouttrace"
-	// "go.opentelemetry.io/otel/propagation"
-	// "go.opentelemetry.io/otel/sdk/resource"
-	// sdktrace "go.opentelemetry.io/otel/sdk/trace"
-	// semconv "go.opentelemetry.io/otel/semconv/v1.17.0"
-	// "go.opentelemetry.io/otel/trace"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/exporters/stdout/stdouttrace"
+	"go.opentelemetry.io/otel/propagation"
+	"go.opentelemetry.io/otel/sdk/resource"
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
+	semconv "go.opentelemetry.io/otel/semconv/v1.17.0"
+	"go.opentelemetry.io/otel/trace"
 )
 
 var (
@@ -75,25 +75,25 @@ func init() {
 	Logger.Infof("Setting ENVIRONMENT from ENV :: %s", Environment)
 }
 
-// func initTracer() (*sdktrace.TracerProvider, error) {
-// 	exporter, err := stdouttrace.New()
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	tp := sdktrace.NewTracerProvider(
-// 		sdktrace.WithSampler(sdktrace.AlwaysSample()),
-// 		sdktrace.WithBatcher(exporter),
-// 		sdktrace.WithResource(resource.NewWithAttributes(
-// 			semconv.SchemaURL,
-// 			semconv.ServiceName("go-micro-api"),
-// 			semconv.ServiceVersion("v1.0.0"),
-// 			attribute.String("environment", Environment),
-// 		)),
-// 	)
-// 	otel.SetTracerProvider(tp)
-// 	otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{}))
-// 	return tp, err
-// }
+func initTracer() (*sdktrace.TracerProvider, error) {
+	exporter, err := stdouttrace.New()
+	if err != nil {
+		return nil, err
+	}
+	tp := sdktrace.NewTracerProvider(
+		sdktrace.WithSampler(sdktrace.AlwaysSample()),
+		sdktrace.WithBatcher(exporter),
+		sdktrace.WithResource(resource.NewWithAttributes(
+			semconv.SchemaURL,
+			semconv.ServiceName("go-micro-api"),
+			semconv.ServiceVersion("v1.0.0"),
+			attribute.String("environment", Environment),
+		)),
+	)
+	otel.SetTracerProvider(tp)
+	otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{}))
+	return tp, err
+}
 
 type StatusRecorder struct {
 	http.ResponseWriter
@@ -191,17 +191,16 @@ func HandleMessageRequestGet() http.HandlerFunc {
 		writter.Header().Set("Content-Type", "application/json")
 
 		statusCode := http.StatusOK
-		// ctx := req.Context()
+		ctx := req.Context()
 		// log request in other goroutine
 		go LogRequest(statusCode, req.URL.Path, req.Host, req.Method, ExtractIpFromRemoteAddr(req.RemoteAddr), Message)
-		// LogRequest(statusCode, req.URL.Path, req.Host, req.Method, ExtractIpFromRemoteAddr(req.RemoteAddr), Message)
 		// otel tracing
-		// span := trace.SpanFromContext(ctx)
-		// span.AddEvent("trace", trace.WithAttributes(
-		// 	attribute.String("message", Message),
-		// ))
-		// span.SetStatus(codes.Ok, "Ok")
-		// defer span.End()
+		span := trace.SpanFromContext(ctx)
+		span.AddEvent("trace", trace.WithAttributes(
+			attribute.String("message", Message),
+		))
+		span.SetStatus(codes.Ok, "Ok")
+		defer span.End()
 
 		// inject some sleep time to simulate a job being done
 		time.Sleep(time.Duration(100 * time.Millisecond))
@@ -217,17 +216,16 @@ func HandleDefaultRequestGet(response string) http.HandlerFunc {
 		writter.Header().Set("Content-Type", "application/json")
 
 		statusCode := http.StatusOK
-		// ctx := req.Context()
+		ctx := req.Context()
 		// log request in other goroutine
 		go LogRequest(statusCode, req.URL.Path, req.Host, req.Method, ExtractIpFromRemoteAddr(req.RemoteAddr), response)
-		// LogRequest(statusCode, req.URL.Path, req.Host, req.Method, ExtractIpFromRemoteAddr(req.RemoteAddr), response)
 		// otel tracing
-		// span := trace.SpanFromContext(ctx)
-		// span.AddEvent("trace", trace.WithAttributes(
-		// 	attribute.String("message", Message),
-		// ))
-		// span.SetStatus(codes.Ok, "Ok")
-		// defer span.End()
+		span := trace.SpanFromContext(ctx)
+		span.AddEvent("trace", trace.WithAttributes(
+			attribute.String("message", Message),
+		))
+		span.SetStatus(codes.Ok, "Ok")
+		defer span.End()
 
 		responseJSONBytes, _ := BuildJSONResponse(statusCode, response)
 		writter.WriteHeader(statusCode)
@@ -240,25 +238,25 @@ func main() {
 	fmt.Printf("Num Goroutines :: %v\n", runtime.NumGoroutine())
 
 	// create otel tracer
-	// tp, err := initTracer()
-	// if err != nil {
-	// 	Logger.Fatal(err)
-	// }
-	// defer func() {
-	// 	if err := tp.Shutdown(ctx); err != nil {
-	// 		Logger.Printf("Error shutting down tracer provider: %v", err)
-	// 	}
-	// }()
+	tp, err := initTracer()
+	if err != nil {
+		Logger.Fatal(err)
+	}
+	defer func() {
+		if err := tp.Shutdown(ctx); err != nil {
+			Logger.Printf("Error shutting down tracer provider: %v", err)
+		}
+	}()
 
 	// create router
 	router := mux.NewRouter()
 	// add metrics route
 	router.Handle("/metrics", promhttp.Handler()).Methods("GET")
 	// add routes with otel tracing
-	// router.Handle("/api/v1/otel/message", otelhttp.NewHandler(http.HandlerFunc(
-	// 	HandleMessageRequestGet()), "/api/v1/otel/message")).Methods("GET")
-	// router.Handle("/api/v1/otel/ping", otelhttp.NewHandler(http.HandlerFunc(
-	// 	HandleDefaultRequestGet("Pong")), "/api/v1/otel/ping")).Methods("GET")
+	router.Handle("/api/v1/otel/message", otelhttp.NewHandler(http.HandlerFunc(
+		HandleMessageRequestGet()), "/api/v1/otel/message")).Methods("GET")
+	router.Handle("/api/v1/otel/ping", otelhttp.NewHandler(http.HandlerFunc(
+		HandleDefaultRequestGet("Pong")), "/api/v1/otel/ping")).Methods("GET")
 	// add routes with prometheus metrics
 	subRouterProm := router.PathPrefix("/api/v1").Subrouter()
 	subRouterProm.Use(prometheusMiddleware)
