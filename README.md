@@ -44,8 +44,8 @@ docker container run -d \
   --restart on-failure \
   juliocesarmidia/go-micro-api:v1.0.0
 
-# it uses at maximum about 32MB of memory
-docker container update --memory='32MB' go-micro-api
+# updates memory request
+docker container update --memory='512MB' go-micro-api
 
 docker container stats go-micro-api --no-stream
 docker container top go-micro-api
@@ -55,9 +55,7 @@ docker container inspect go-micro-api
 docker container logs -f --tail 100 go-micro-api
 
 curl --url 'http://localhost:9000/api/v1/message'
-curl --url 'http://localhost:9000/api/v1/otel/message'
 curl --url 'http://localhost:9000/api/v1/ping'
-curl --url 'http://localhost:9000/api/v1/otel/ping'
 curl --url 'http://localhost:9000/api/v1/health/live'
 curl --url 'http://localhost:9000/api/v1/health/ready'
 curl --url 'http://localhost:9000/metrics'
