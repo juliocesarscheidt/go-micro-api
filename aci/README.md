@@ -185,6 +185,14 @@ ContainerInstanceLog_CL
 | take 10
 
 
+# retrieve metrics
+CONTAINER_ID=$(az container show --resource-group $RESOURCE_GROUP --name $API_NAME --query id --output tsv)
+
+az monitor metrics list --resource $CONTAINER_ID --metric CPUUsage --output table
+
+az monitor metrics list --resource $CONTAINER_ID --metric MemoryUsage --output table
+
+
 # clean up
 az group delete --name $RESOURCE_GROUP --yes
 ```
