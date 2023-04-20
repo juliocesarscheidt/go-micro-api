@@ -2,9 +2,9 @@ config:
   target: "http://localhost:9000/api/v1"
   phases:
     - name: Sustained load
-      duration: 60
-      arrivalRate: 50
-      maxVusers: 3000
+      duration: 300
+      arrivalRate: 30
+      maxVusers: 9000
   ensure:
     thresholds:
       # p99 of response time must be <300ms:

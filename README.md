@@ -37,15 +37,15 @@ docker container run -d \
   --name go-micro-api \
   --publish 9000:9000 \
   --cap-drop ALL \
-  --memory='32MB' \
-  --cpus='0.1' \
+  --memory='256MB' \
+  --cpus='0.5' \
   --env MESSAGE="Hello World From Docker" \
   --env ENVIRONMENT="development" \
   --restart on-failure \
   juliocesarmidia/go-micro-api:v1.0.0
 
-# it uses in general about 16MB of memory
-docker container update --memory='16MB' go-micro-api
+# updates memory request
+docker container update --memory='512MB' go-micro-api
 
 docker container stats go-micro-api --no-stream
 docker container top go-micro-api
@@ -55,9 +55,7 @@ docker container inspect go-micro-api
 docker container logs -f --tail 100 go-micro-api
 
 curl --url 'http://localhost:9000/api/v1/message'
-curl --url 'http://localhost:9000/api/v1/otel/message'
 curl --url 'http://localhost:9000/api/v1/ping'
-curl --url 'http://localhost:9000/api/v1/otel/ping'
 curl --url 'http://localhost:9000/api/v1/health/live'
 curl --url 'http://localhost:9000/api/v1/health/ready'
 curl --url 'http://localhost:9000/metrics'
@@ -93,10 +91,15 @@ kubectl logs -f \
 kubectl delete -f k8s/deployment.yaml
 ```
 
-## Testing API benchmark with siege
+## Testing API benchmark with siege, wrk or artillery
 
 ```bash
 siege --time 30S --concurrent 255 --benchmark 'http://localhost:9000/api/v1/message'
+
+wrk --threads $(nproc) --connections 255 --duration 30s --timeout 1s 'http://localhost:9000/api/v1/message' --latency
+
+artillery run load-tests/api-message-load-test.yml --output load-tests/api-message.json
+artillery report load-tests/api-message.json
 ```
 
 ## Prometheus
