@@ -23,7 +23,13 @@ help: Makefile
 .PHONY: go-vet
 go-vet:
 	cd src/; \
-	go vet $(PACKAGES)
+	go vet ./...
+
+## go-lint: lint code with go CLI
+.PHONY: go-lint
+go-lint:
+	cd src/; \
+	golint ./...
 
 ## go-test: run unit tests with go CLI
 .PHONY: go-test
