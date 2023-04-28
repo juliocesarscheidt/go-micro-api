@@ -9,9 +9,6 @@ RUN go mod download
 COPY ./ ./
 
 RUN go install golang.org/x/lint/golint@latest
-RUN ls -lth /go/bin/
-RUN echo $GOPATH
-RUN ls -lth $GOPATH/bin/
 
 EXPOSE 9000
 # set default env
