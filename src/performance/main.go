@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-func GoroutineId() int {
+func goroutineID() int {
 	var buf [64]byte
 	n := runtime.Stack(buf[:], false)
 	idField := strings.Fields(strings.TrimPrefix(string(buf[:n]), "goroutine "))[0]
@@ -20,7 +20,7 @@ func GoroutineId() int {
 }
 
 func main() {
-	fmt.Printf("Goroutine ID :: %v\n", GoroutineId())
+	fmt.Printf("Goroutine ID :: %v\n", goroutineID())
 	fmt.Printf("Num Goroutines :: %v\n", runtime.NumGoroutine())
 
 	var memStats runtime.MemStats

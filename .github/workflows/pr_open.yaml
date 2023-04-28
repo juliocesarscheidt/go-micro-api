@@ -16,7 +16,7 @@ env: {}
 
 jobs:
   build:
-    name: Build and Check Image
+    name: Build, lint and Check Image
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -29,6 +29,16 @@ jobs:
       uses: docker/setup-qemu-action@v2
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v2
+    - name: Build lint image
+      run: |
+        docker image build \
+          --tag "juliocesarmidia/go-micro-api-lint:${{ github.event.number }}" -f src/Development.Dockerfile ./src
+    - name: Run lint
+      run: |
+        docker container run --rm \
+          --name go-micro-api-lint \
+          --entrypoint /go/bin/golint \
+          "juliocesarmidia/go-micro-api-lint:${{ github.event.number }}" "./..."
     - name: Build image
       run: |
         docker image build \
